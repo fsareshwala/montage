@@ -35,15 +35,15 @@ struct MergeConfigurationAndClipTests {
   func effectiveTransitionDurationClamping() {
     let config = MergeConfiguration(
       transitionStyle: .crossDissolve,
-      transitionDuration: 0.7,
+      transitionDuration: 0.75,
       preserveMetadata: true,
       deleteSourceClipsAfterMerge: false,
       autoTrimEnabled: false,
       autoTrimInterval: .thirtySeconds
     )
 
-    // Both clips plenty long -> full 0.7s
-    #expect(abs(config.effectiveTransitionDuration(between: 5.0, and: 8.0) - 0.7) < 0.0001)
+    // Both clips plenty long -> full 0.75s
+    #expect(abs(config.effectiveTransitionDuration(between: 5.0, and: 8.0) - 0.75) < 0.0001)
 
     // First clip 1.0s -> clamped to 0.45s
     #expect(abs(config.effectiveTransitionDuration(between: 1.0, and: 5.0) - 0.45) < 0.0001)

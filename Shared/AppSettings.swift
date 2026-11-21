@@ -26,20 +26,20 @@ public nonisolated enum TransitionStyle: String, CaseIterable, Identifiable, Sen
 
 /// Supported transition durations in seconds.
 public nonisolated enum TransitionDuration: Double, CaseIterable, Identifiable, Sendable {
-  case short = 0.3
+  case short = 0.25
   case medium = 0.5
-  case long = 0.7
+  case long = 0.75
 
   public var id: Double { rawValue }
 
   public var displayName: String {
     switch self {
     case .short:
-      "0.3s"
+      "0.25s"
     case .medium:
       "0.5s"
     case .long:
-      "0.7s"
+      "0.75s"
     }
   }
 }

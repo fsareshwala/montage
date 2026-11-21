@@ -120,7 +120,7 @@ struct AppSettingsTests {
     settings.autoTrimEnabled = false
 
     #expect(snapshot.transitionStyle == .dipToBlack)
-    #expect(snapshot.transitionDuration == 0.3)
+    #expect(snapshot.transitionDuration == 0.25)
     #expect(snapshot.preserveMetadata == true)
     #expect(snapshot.deleteSourceClipsAfterMerge == true)
     #expect(snapshot.autoTrimEnabled == true)
@@ -144,10 +144,12 @@ struct AppSettingsTests {
     }
 
     #expect(TransitionDuration.allCases == [.short, .medium, .long])
-    #expect(TransitionDuration.short.rawValue == 0.3)
+    #expect(TransitionDuration.short.rawValue == 0.25)
+    #expect(TransitionDuration.short.displayName == "0.25s")
     #expect(TransitionDuration.medium.rawValue == 0.5)
-    #expect(TransitionDuration.long.rawValue == 0.7)
-    #expect(TransitionDuration.long.displayName == "0.7s")
+    #expect(TransitionDuration.medium.displayName == "0.5s")
+    #expect(TransitionDuration.long.rawValue == 0.75)
+    #expect(TransitionDuration.long.displayName == "0.75s")
     for duration in TransitionDuration.allCases {
       #expect(duration.id == duration.rawValue)
       #expect(!duration.displayName.isEmpty)
