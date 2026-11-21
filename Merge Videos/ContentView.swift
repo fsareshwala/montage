@@ -130,21 +130,15 @@ struct ContentView: View {
 
       VStack(alignment: .leading, spacing: 10) {
         QuickGuideStepRow(
-          stepNumber: 1,
           symbolName: SystemSymbolCompatibility.shared.photoStack,
-          tint: .blue,
           text: "Select 2 or more clips in Photos"
         )
         QuickGuideStepRow(
-          stepNumber: 2,
           symbolName: "square.and.arrow.up",
-          tint: .indigo,
           text: "Tap Share and pick Merge Videos"
         )
         QuickGuideStepRow(
-          stepNumber: 3,
-          symbolName: "arrow.up.arrow.down.circle.fill",
-          tint: .green,
+          symbolName: "arrow.up.arrow.down.circle",
           text: "Reorder and Merge into one video"
         )
       }
@@ -405,31 +399,19 @@ private struct SettingIconBadge: View {
 // MARK: - Quick Guide Step Row
 
 private struct QuickGuideStepRow: View {
-  let stepNumber: Int
   let symbolName: String
-  let tint: Color
   let text: String
 
   var body: some View {
     HStack(spacing: 12) {
-      Text("\(stepNumber)")
-        .font(.caption.weight(.bold))
-        .monospacedDigit()
-        .foregroundStyle(tint)
-        .frame(width: 22, height: 22)
-        .background(
-          Circle()
-            .fill(tint.opacity(0.14))
-        )
-
       Image(systemName: symbolName)
-        .font(.subheadline)
-        .foregroundStyle(tint)
-        .frame(width: 20)
+        .font(.callout)
+        .foregroundStyle(Color.accentColor)
+        .frame(width: 28)
         .accessibilityHidden(true)
 
       Text(text)
-        .font(.subheadline)
+        .font(.callout)
         .foregroundStyle(.primary)
         .fixedSize(horizontal: false, vertical: true)
     }

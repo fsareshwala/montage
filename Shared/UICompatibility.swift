@@ -47,7 +47,7 @@ public nonisolated final class SystemSymbolCompatibility: Sendable {
 
   public var photoStack: String {
     if #available(iOS 16, *) {
-      "photo.stack.fill"
+      "photo.stack"
     } else {
       "photo.on.rectangle.angled"
     }
