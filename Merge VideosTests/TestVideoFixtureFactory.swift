@@ -71,12 +71,8 @@ enum TestVideoFixtureFactory {
     ]
     let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
     videoInput.transform = transform
-    let videoReceiver = writer.inputPixelBufferReceiver(
-      for: videoInput,
-      pixelBufferAttributes: nil
-    )
 
-    var audioReceiver: AVAssetWriterInput.SampleBufferReceiver?
+    let audioInput: AVAssetWriterInput?
     if includeAudio {
       let audioSettings: [String: Any] = [
         AVFormatIDKey: kAudioFormatMPEG4AAC,
@@ -84,16 +80,64 @@ enum TestVideoFixtureFactory {
         AVSampleRateKey: 44_100,
         AVEncoderBitRateKey: 64_000,
       ]
-      let audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
-      audioReceiver = writer.inputReceiver(for: audioInput)
+      audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+    } else {
+      audioInput = nil
     }
+
+    let pixelBuffer = try makeSolidPixelBuffer(width: width, height: height, color: color)
+    let totalFrames = max(1, Int((duration * Double(fps)).rounded()))
+
+    if #available(iOS 26, *) {
+      try await writeModern(
+        writer: writer,
+        videoInput: videoInput,
+        audioInput: audioInput,
+        pixelBuffer: pixelBuffer,
+        totalFrames: totalFrames,
+        fps: fps,
+        duration: duration
+      )
+    } else {
+      try await writeLegacy(
+        writer: writer,
+        videoInput: videoInput,
+        audioInput: audioInput,
+        pixelBuffer: pixelBuffer,
+        totalFrames: totalFrames,
+        fps: fps,
+        duration: duration
+      )
+    }
+
+    await writer.finishWriting()
+    if writer.status != .completed {
+      throw FixtureError.writerFailed(writer.error?.localizedDescription ?? "finishWriting failed")
+    }
+
+    return outputURL
+  }
+
+  @available(iOS 26, *)
+  private static func writeModern(
+    writer: AVAssetWriter,
+    videoInput: AVAssetWriterInput,
+    audioInput: AVAssetWriterInput?,
+    pixelBuffer: CVPixelBuffer,
+    totalFrames: Int,
+    fps: Int32,
+    duration: TimeInterval
+  ) async throws {
+    let videoReceiver = writer.inputPixelBufferReceiver(
+      for: videoInput,
+      pixelBufferAttributes: nil
+    )
+    let audioReceiver = audioInput.map { writer.inputReceiver(for: $0) }
 
     try writer.start()
     writer.startSession(atSourceTime: .zero)
 
-    let pixelBuffer = try makeSolidPixelBuffer(width: width, height: height, color: color)
     let readOnlyFrame = CVReadOnlyPixelBuffer(unsafeBuffer: pixelBuffer)
-    let totalFrames = max(1, Int((duration * Double(fps)).rounded()))
 
     // Write video and audio concurrently so AVAssetWriter can interleave both tracks without blocking.
     try await withThrowingTaskGroup(of: Void.self) { group in
@@ -131,13 +175,106 @@ enum TestVideoFixtureFactory {
 
       try await group.waitForAll()
     }
+  }
 
-    await writer.finishWriting()
-    if writer.status != .completed {
-      throw FixtureError.writerFailed(writer.error?.localizedDescription ?? "finishWriting failed")
+  private static func writeLegacy(
+    writer: AVAssetWriter,
+    videoInput: AVAssetWriterInput,
+    audioInput: AVAssetWriterInput?,
+    pixelBuffer: CVPixelBuffer,
+    totalFrames: Int,
+    fps: Int32,
+    duration: TimeInterval
+  ) async throws {
+    let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+      assetWriterInput: videoInput,
+      sourcePixelBufferAttributes: nil
+    )
+    writer.add(videoInput)
+    if let audioInput {
+      writer.add(audioInput)
     }
 
-    return outputURL
+    guard writer.startWriting() else {
+      throw FixtureError.writerFailed(writer.error?.localizedDescription ?? "startWriting failed")
+    }
+    writer.startSession(atSourceTime: .zero)
+
+    let videoBox = LegacySendableBox(videoInput)
+    let adaptorBox = LegacySendableBox(adaptor)
+    let bufferBox = LegacySendableBox(pixelBuffer)
+
+    try await withThrowingTaskGroup(of: Void.self) { group in
+      group.addTask {
+        let queue = DispatchQueue(label: "TestVideoFixtureFactory.video")
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+          var frameIndex = 0
+          var finished = false
+          videoBox.value.requestMediaDataWhenReady(on: queue) {
+            while videoBox.value.isReadyForMoreMediaData && frameIndex < totalFrames {
+              let pts = CMTime(value: CMTimeValue(frameIndex), timescale: fps)
+              _ = adaptorBox.value.append(bufferBox.value, withPresentationTime: pts)
+              frameIndex += 1
+            }
+            if frameIndex >= totalFrames, !finished {
+              finished = true
+              videoBox.value.markAsFinished()
+              continuation.resume()
+            }
+          }
+        }
+      }
+
+      if let audioInput {
+        let audioBox = LegacySendableBox(audioInput)
+        group.addTask {
+          let sampleRate: Double = 44_100
+          let totalSamples = Int((duration * sampleRate).rounded())
+          let chunkSize = 4_410
+          let formatDescription = try makePCMFormatDescription(sampleRate: sampleRate)
+          let queue = DispatchQueue(label: "TestVideoFixtureFactory.audio")
+
+          try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<Void, Error>) in
+            var offset = 0
+            var finished = false
+            audioBox.value.requestMediaDataWhenReady(on: queue) {
+              do {
+                while audioBox.value.isReadyForMoreMediaData && offset < totalSamples {
+                  let count = min(chunkSize, totalSamples - offset)
+                  let pts = CMTime(value: CMTimeValue(offset), timescale: CMTimeScale(sampleRate))
+                  let sampleBuffer = try makeSilentAudioSampleBuffer(
+                    formatDescription: formatDescription,
+                    sampleCount: count,
+                    presentationTimeStamp: pts
+                  )
+                  _ = audioBox.value.append(sampleBuffer)
+                  offset += count
+                }
+                if offset >= totalSamples, !finished {
+                  finished = true
+                  audioBox.value.markAsFinished()
+                  continuation.resume()
+                }
+              } catch {
+                if !finished {
+                  finished = true
+                  audioBox.value.markAsFinished()
+                  continuation.resume(throwing: error)
+                }
+              }
+            }
+          }
+        }
+      }
+
+      try await group.waitForAll()
+    }
+  }
+
+  private final class LegacySendableBox<Value>: @unchecked Sendable {
+    let value: Value
+    init(_ value: Value) { self.value = value }
   }
 
   private static func makeSolidPixelBuffer(

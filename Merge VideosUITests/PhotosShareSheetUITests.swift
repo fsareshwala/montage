@@ -246,7 +246,11 @@ final class PhotosShareSheetUITests: XCTestCase {
         allowAll.tap()
         break
       }
-      try? await Task.sleep(for: .milliseconds(200))
+      if #available(iOS 16, *) {
+        try? await Task.sleep(for: .milliseconds(200))
+      } else {
+        try? await Task.sleep(nanoseconds: 200_000_000)
+      }
     }
 
     return await authTask.value
@@ -270,10 +274,6 @@ final class PhotosShareSheetUITests: XCTestCase {
         AVVideoHeightKey: height,
       ]
     )
-    let receiver = writer.inputPixelBufferReceiver(for: videoInput, pixelBufferAttributes: nil)
-
-    try writer.start()
-    writer.startSession(atSourceTime: .zero)
 
     var pixelBuffer: CVPixelBuffer?
     let attrs: [CFString: Any] = [
@@ -310,15 +310,56 @@ final class PhotosShareSheetUITests: XCTestCase {
     }
     CVPixelBufferUnlockBaseAddress(buffer, [])
 
-    let readOnlyFrame = CVReadOnlyPixelBuffer(unsafeBuffer: buffer)
-    for frameIndex in 0..<totalFrames {
-      let pts = CMTime(value: CMTimeValue(frameIndex), timescale: fps)
-      try await receiver.append(readOnlyFrame, with: pts)
+    if #available(iOS 26, *) {
+      let receiver = writer.inputPixelBufferReceiver(for: videoInput, pixelBufferAttributes: nil)
+      try writer.start()
+      writer.startSession(atSourceTime: .zero)
+
+      let readOnlyFrame = CVReadOnlyPixelBuffer(unsafeBuffer: buffer)
+      for frameIndex in 0..<totalFrames {
+        let pts = CMTime(value: CMTimeValue(frameIndex), timescale: fps)
+        try await receiver.append(readOnlyFrame, with: pts)
+      }
+      receiver.finish()
+    } else {
+      let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+        assetWriterInput: videoInput,
+        sourcePixelBufferAttributes: nil
+      )
+      writer.add(videoInput)
+      XCTAssertTrue(writer.startWriting())
+      writer.startSession(atSourceTime: .zero)
+
+      let inputBox = UITestSendableBox(videoInput)
+      let adaptorBox = UITestSendableBox(adaptor)
+      let bufferBox = UITestSendableBox(buffer)
+      let queue = DispatchQueue(label: "PhotosShareSheetUITests.video")
+
+      await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        var frameIndex = 0
+        var finished = false
+        inputBox.value.requestMediaDataWhenReady(on: queue) {
+          while inputBox.value.isReadyForMoreMediaData && frameIndex < totalFrames {
+            let pts = CMTime(value: CMTimeValue(frameIndex), timescale: fps)
+            _ = adaptorBox.value.append(bufferBox.value, withPresentationTime: pts)
+            frameIndex += 1
+          }
+          if frameIndex >= totalFrames, !finished {
+            finished = true
+            inputBox.value.markAsFinished()
+            continuation.resume()
+          }
+        }
+      }
     }
-    receiver.finish()
     await writer.finishWriting()
 
     XCTAssertEqual(writer.status, .completed)
     return outputURL
   }
+}
+
+private final class UITestSendableBox<Value>: @unchecked Sendable {
+  let value: Value
+  init(_ value: Value) { self.value = value }
 }
