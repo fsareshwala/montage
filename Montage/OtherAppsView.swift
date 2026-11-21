@@ -11,6 +11,8 @@ struct DeveloperAppInfo: Identifiable {
 
 /// Showcases other apps from the developer inside the host app's Form.
 struct OtherAppsView: View {
+  @Environment(\.openURL) private var openURL
+
   private let apps: [DeveloperAppInfo] = [
     DeveloperAppInfo(
       id: "forecash",
@@ -32,7 +34,9 @@ struct OtherAppsView: View {
 
   var body: some View {
     ForEach(apps) { app in
-      Link(destination: app.appStoreURL) {
+      Button {
+        openURL(app.appStoreURL)
+      } label: {
         HStack(spacing: 15) {
           Image(app.iconName)
             .resizable()
@@ -43,15 +47,13 @@ struct OtherAppsView: View {
           VStack(alignment: .leading, spacing: 4) {
             Text(app.appName)
               .font(.headline)
-              .foregroundStyle(.primary)
 
             Text(app.description)
               .font(.caption)
-              .foregroundStyle(.secondary)
+              .foregroundStyle(Color.secondary)
               .lineLimit(2)
           }
         }
-        .padding(.vertical, 2)
       }
     }
   }
