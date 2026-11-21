@@ -1,30 +1,52 @@
-//
-//  ShareViewController.swift
-//  ShareExtension
-//
-//  Created by Faraaz Sareshwala on 11/20/26.
-//
-
+import SwiftUI
 import UIKit
-import Social
 
-class ShareViewController: SLComposeServiceViewController {
+/// Root view controller for the Clip Combine Share Extension.
+/// Embeds the SwiftUI `ShareExtensionView` full-bleed inside the extension container.
+@objc(ShareViewController)
+final class ShareViewController: UIViewController {
+  override func viewDidLoad() {
+    super.viewDidLoad()
 
-    override func isContentValid() -> Bool {
-        // Do validation of contentText and/or NSExtensionContext attachments here
-        return true
+    view.backgroundColor = .clear
+
+    let inputItems = (extensionContext?.inputItems as? [NSExtensionItem]) ?? []
+
+    let rootView = ShareExtensionView(
+      extensionItems: inputItems,
+      onCancel: { [weak self] in
+        self?.dismissExtension(cancelled: true)
+      },
+      onComplete: { [weak self] in
+        self?.dismissExtension(cancelled: false)
+      }
+    )
+
+    let hostingController = UIHostingController(rootView: rootView)
+    hostingController.view.backgroundColor = .clear
+    hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+
+    addChild(hostingController)
+    view.addSubview(hostingController.view)
+    NSLayoutConstraint.activate([
+      hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
+      hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+      hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+    ])
+    hostingController.didMove(toParent: self)
+  }
+
+  private func dismissExtension(cancelled: Bool) {
+    if cancelled {
+      let error = NSError(
+        domain: NSCocoaErrorDomain,
+        code: NSUserCancelledError,
+        userInfo: nil
+      )
+      extensionContext?.cancelRequest(withError: error)
+    } else {
+      extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
     }
-
-    override func didSelectPost() {
-        // This is called after the user selects Post. Do the upload of contentText and/or NSExtensionContext attachments.
-    
-        // Inform the host that we're done, so it un-blocks its UI. Note: Alternatively you could call super's -didSelectPost, which will similarly complete the extension context.
-        self.extensionContext!.completeRequest(returningItems: [], completionHandler: nil)
-    }
-
-    override func configurationItems() -> [Any]! {
-        // To add configuration options via table cells at the bottom of the sheet, return an array of SLComposeSheetConfigurationItem here.
-        return []
-    }
-
+  }
 }
