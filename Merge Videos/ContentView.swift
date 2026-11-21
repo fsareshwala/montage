@@ -53,7 +53,7 @@ struct ContentView: View {
   // MARK: - Section 1: Photo Access Status
 
   private var photoAccessSection: some View {
-    Section {
+    Section("Status") {
       photoAccessStatusRow
 
       if needsFullAccessBanner {

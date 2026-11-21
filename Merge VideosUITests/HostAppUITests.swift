@@ -16,7 +16,8 @@ final class HostAppUITests: XCTestCase {
       "Host app should display the 'Merge Videos' navigation bar."
     )
 
-    // Quick guide steps
+    // Status and Quick guide sections
+    XCTAssertTrue(app.staticTexts["Status"].exists)
     XCTAssertTrue(app.staticTexts["How It Works"].exists)
     XCTAssertTrue(app.staticTexts["Select 2 or more clips in Photos"].exists)
     XCTAssertTrue(app.staticTexts["Tap Share and pick Merge Videos"].exists)
