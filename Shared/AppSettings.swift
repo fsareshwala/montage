@@ -135,7 +135,7 @@ public nonisolated struct MergeConfiguration: Sendable, Equatable {
 @Observable
 public final class AppSettings {
   /// App Group identifier matching both targets' entitlements.
-  public nonisolated static let appGroupIdentifier = "group.com.sareshwala.faraaz.clipcombine"
+  public nonisolated static let appGroupIdentifier = "group.com.sareshwala.faraaz.mergevideos"
 
   /// Shared container directory for temporary exports, falling back to temporaryDirectory.
   public nonisolated static var sharedContainerURL: URL {

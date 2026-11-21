@@ -4,8 +4,11 @@ import Testing
 @Suite("App and Share Extension Bundle Configuration")
 struct ShareExtensionConfigurationTests {
 
-  @Test("Host app Info.plist has valid Photo Library usage description without restricted copy")
+  @Test("Host app Info.plist has expected display name, bundle ID, and clean usage description")
   func hostAppPhotoUsageDescription() throws {
+    #expect(Bundle.main.bundleIdentifier == "com.sareshwala.faraaz.mergevideos")
+    #expect(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String == "Merge Videos")
+
     let usage = try #require(
       Bundle.main.object(forInfoDictionaryKey: "NSPhotoLibraryUsageDescription") as? String
     )
@@ -21,7 +24,8 @@ struct ShareExtensionConfigurationTests {
     let extensionBundle = try #require(Bundle(url: extensionURL))
     let info = try #require(extensionBundle.infoDictionary)
 
-    #expect(info["CFBundleDisplayName"] as? String == "Clip Combine")
+    #expect(extensionBundle.bundleIdentifier == "com.sareshwala.faraaz.mergevideos.share")
+    #expect(info["CFBundleDisplayName"] as? String == "Merge Videos")
 
     let usage = try #require(info["NSPhotoLibraryUsageDescription"] as? String)
     #expect(!usage.isEmpty)

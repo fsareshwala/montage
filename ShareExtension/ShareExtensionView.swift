@@ -51,7 +51,7 @@ struct ShareExtensionView: View {
         }
       }
       .background(Color(.systemGroupedBackground))
-      .navigationTitle("Merge Clips")
+      .navigationTitle("Merge Videos")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
@@ -142,7 +142,7 @@ struct ShareExtensionView: View {
     } description: {
       Text(
         errorMessage
-          ?? "Select at least 2 videos from Photos to combine them into a single montage.")
+          ?? "Select at least 2 videos from Photos to merge them into a single montage.")
     } actions: {
       Button("Close") {
         cancelAndDismiss()
@@ -278,7 +278,7 @@ struct ShareExtensionView: View {
       }
       clips = loaded
       if loaded.count < 2 {
-        errorMessage = "Select at least 2 videos to combine into a montage."
+        errorMessage = "Select at least 2 videos to merge into a montage."
       }
     } catch is CancellationError {
       return

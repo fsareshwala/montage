@@ -12,14 +12,14 @@ final class HostAppUITests: XCTestCase {
     app.launch()
 
     XCTAssertTrue(
-      app.navigationBars["Clip Combine"].waitForExistence(timeout: 5),
-      "Host app should display the 'Clip Combine' navigation bar."
+      app.navigationBars["Merge Videos"].waitForExistence(timeout: 5),
+      "Host app should display the 'Merge Videos' navigation bar."
     )
 
     // Quick guide steps
     XCTAssertTrue(app.staticTexts["How It Works"].exists)
     XCTAssertTrue(app.staticTexts["Select 2 or more clips in Photos"].exists)
-    XCTAssertTrue(app.staticTexts["Tap Share and pick Clip Combine"].exists)
+    XCTAssertTrue(app.staticTexts["Tap Share and pick Merge Videos"].exists)
     XCTAssertTrue(app.staticTexts["Reorder and Merge into one video"].exists)
 
     // Transitions section
@@ -70,7 +70,7 @@ final class HostAppUITests: XCTestCase {
   func testTransitionAndAutoTrimControlsToggleAndPersistAcrossRelaunch() {
     let app = XCUIApplication()
     app.launch()
-    XCTAssertTrue(app.navigationBars["Clip Combine"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.navigationBars["Merge Videos"].waitForExistence(timeout: 5))
 
     // Open Transition Style picker and select Cross Dissolve
     let transitionPicker = app.buttons.matching(
@@ -120,7 +120,7 @@ final class HostAppUITests: XCTestCase {
     // Relaunch app and verify settings persisted via shared App Group UserDefaults
     app.terminate()
     app.launch()
-    XCTAssertTrue(app.navigationBars["Clip Combine"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.navigationBars["Merge Videos"].waitForExistence(timeout: 5))
 
     let persistedTransitionPicker = app.buttons.matching(
       NSPredicate(format: "label CONTAINS 'Transition Style'")

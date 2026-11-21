@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Root view controller for the Clip Combine Share Extension.
+/// Root view controller for the Merge Videos Share Extension.
 /// Embeds the SwiftUI `ShareExtensionView` full-bleed inside the extension container.
 @objc(ShareViewController)
 final class ShareViewController: UIViewController {

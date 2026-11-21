@@ -1,22 +1,22 @@
-# Clip Combine — Feature Ledger & Provenance
+# Merge Videos — Feature Ledger & Provenance
 
-This document tracks every implemented feature in **Clip Combine**
-(`com.sareshwala.faraaz.clipcombine`), its default configuration, and the user intent behind it. AI
+This document tracks every implemented feature in **Merge Videos**
+(`com.sareshwala.faraaz.mergevideos`), its default configuration, and the user intent behind it. AI
 agents must keep this file synchronized with code changes.
 
 ---
 
 ## Implemented Features (v1.0 Baseline)
 
-### 1. Share Sheet Clip Ordering & Merging (`com.sareshwala.faraaz.clipcombine.share`)
+### 1. Share Sheet Clip Ordering & Merging (`com.sareshwala.faraaz.mergevideos.share`)
 
 - **Behavior:** Accepts 2–30 videos from the iOS Photos Share Sheet, displays a compact reorderable
   list with immediate drag handles, thumbnail previews, clip durations, and a floating bottom
-  **Merge & Save** bar.
+  **Merge and Save** bar.
 - **Provenance & Rationale:** Created to replace multi-step iMovie timelines when combining 10–30s
-  kid activity clips after an outing. Settings are intentionally omitted from the Share Sheet to
-  keep the export flow fast and distraction-free.
-- **Key Files:** `ShareExtension/ShareViewController.swift`, `ShareExtension/MergeSheetView.swift`,
+  kid activity clips. Settings are intentionally omitted from the Share Sheet to keep the export
+  flow fast and distraction-free.
+- **Key Files:** `ShareExtension/ShareViewController.swift`, `ShareExtension/ShareExtensionView.swift`,
   `Shared/VideoMergeEngine.swift`.
 
 ### 2. Mixed Orientation & Aspect Ratio Normalization (`VideoMergeEngine`)
@@ -24,7 +24,7 @@ agents must keep this file synchronized with code changes.
 - **Behavior:** Reads `preferredTransform` and `naturalSize` from each `AVAsset`, locks composition
   `renderSize` to the first clip's oriented dimensions, and scales/centers subsequent clips to fit
   without cropping or sideways rotation.
-- **Provenance & Rationale:** Parents frequently switch between portrait and landscape mid-outing;
+- **Provenance & Rationale:** Parents frequently switch between portrait and landscape while filming;
   standard concatenation stretches or rotates mismatched clips.
 - **Key Files:** `Shared/VideoMergeEngine.swift`, `Shared/ClipItem.swift`.
 
@@ -33,16 +33,16 @@ agents must keep this file synchronized with code changes.
 - **Behavior:** `Picker` in Host App (`None` [Default], `Cross Dissolve`, `Dip to Black`, `Slide`)
   plus transition duration (`0.3s`, `0.5s` [Default], `0.7s`) using A/B `AVMutableCompositionTrack`
   lanes and audio crossfades.
-- **Provenance & Rationale:** Allows subtle polish between outing activities while defaulting to
-  instant cuts for fastest export speed.
+- **Provenance & Rationale:** Allows subtle polish between clips while defaulting to instant cuts
+  for fastest export speed.
 - **Key Files:** `Shared/AppSettings.swift`, `Shared/VideoMergeEngine.swift`.
 
-### 4. Original Outing Date & GPS Preservation (Host App Setting — Default: ON)
+### 4. Original Date and GPS Preservation (Host App Setting — Default: ON)
 
 - **Behavior:** Copies `creationDate` and `location` from the first clip's `PHAsset` onto the newly
   created `PHAssetCreationRequest`.
-- **Provenance & Rationale:** Merging clips days after an outing normally stamps the montage with
-  "today's" date, breaking chronological order in the Photos library.
+- **Provenance & Rationale:** Merging clips days later normally stamps the montage with "today's"
+  date, breaking chronological order in the Photos library.
 - **Key Files:** `Shared/AppSettings.swift`, `Shared/VideoMergeEngine.swift`.
 
 ### 5. Post-Merge Source Clip Cleanup (Host App Setting — Default: OFF)
@@ -59,9 +59,9 @@ agents must keep this file synchronized with code changes.
   merged montage down to the nearest completed interval (`30s` [Default: `0:30`, `1:00`, `1:30`...]
   or `1m` [`1:00`, `2:00`...]) with a 0.3s audio fade-out. Clips shorter than one interval are
   untouched.
-- **Provenance & Rationale:** Personal workflow preference so saved outing montages share uniform
-  lengths in the library. Strictly opt-in (default OFF) with clear helper text because trimming tail
-  footage is destructive if unexpected.
+- **Provenance & Rationale:** Personal workflow preference so saved montages share uniform lengths
+  in the library. Strictly opt-in (default OFF) with clear helper text because trimming tail footage
+  is destructive if unexpected.
 - **Key Files:** `Shared/AppSettings.swift`, `Shared/VideoMergeEngine.swift`.
 
 ---
@@ -71,10 +71,19 @@ agents must keep this file synchronized with code changes.
 _(Agents: Append new entries below in reverse-chronological order whenever features are added or
 modified.)_
 
+- **v1.0 (Project & Directory Rename to Merge Videos):** Completed the migration by renaming
+  `clip-combine.xcodeproj` to `merge-videos.xcodeproj`, source/test folders (`Merge Videos/`,
+  `Merge VideosTests/`, `Merge VideosUITests/`), `Merge Videos/Merge Videos.entitlements`, Xcode
+  targets/products/schemes, `@testable import Merge_Videos` in unit tests, and target references in
+  `AGENTS.md`. Also aligned the Share Extension navigation title (`Merge Videos`) and empty/error
+  copy (`merge` instead of `combine`) in `ShareExtension/ShareExtensionView.swift` and
+  `Merge VideosUITests/PhotosShareSheetUITests.swift`.
+- **v1.0 (App Rename to Merge Videos):** Renamed the app display name from **Clip Combine** to
+  **Merge Videos** across the host app, Share Extension, UI copy, tests, and documentation; updated
+  bundle identifiers to `com.sareshwala.faraaz.mergevideos` (and `.share`, `.tests`, `.uitests`) and
+  the shared App Group container to `group.com.sareshwala.faraaz.mergevideos`.
 - **v1.0 (Transition Duration Tuning):** Updated the `long` transition duration option from `0.8s` to
   `0.7s` in `Shared/AppSettings.swift` along with unit and UI tests.
-- **v1.0 (Initial Build):** Scaffolded **Clip Combine** host settings app
-  (`com.sareshwala.faraaz.clipcombine`), Share Extension
-  (`com.sareshwala.faraaz.clipcombine.share`), App Group shared storage
-  (`group.com.sareshwala.faraaz.clipcombine`), `AVFoundation` merge engine, metadata preservation,
-  post-merge cleanup, and opt-in fixed-interval auto-trimming.
+- **v1.0 (Initial Build):** Scaffolded host settings app, Share Extension, App Group shared storage,
+  `AVFoundation` merge engine, metadata preservation, post-merge cleanup, and opt-in fixed-interval
+  auto-trimming.

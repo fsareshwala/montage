@@ -6,7 +6,7 @@ import Foundation
 import Photos
 import XCTest
 
-/// End-to-end UI tests exercising the real iOS Photos Share Sheet to ensure Clip Combine's
+/// End-to-end UI tests exercising the real iOS Photos Share Sheet to ensure Merge Videos's
 /// Share Extension remains visible for multi-video selections and launches cleanly.
 ///
 /// Regression guard: iOS `sharingd` hides Share Extensions whose `NSExtensionActivationRule`
@@ -18,13 +18,13 @@ final class PhotosShareSheetUITests: XCTestCase {
     continueAfterFailure = false
   }
 
-  func testClipCombineAppearsInPhotosShareSheetAndLoadsSelectedVideos() async throws {
-    // 1. Launch Clip Combine first so iOS installs and registers the host app and ShareExtension.
+  func testMergeVideosAppearsInPhotosShareSheetAndLoadsSelectedVideos() async throws {
+    // 1. Launch Merge Videos first so iOS installs and registers the host app and ShareExtension.
     let hostApp = XCUIApplication()
     hostApp.launch()
     XCTAssertTrue(
-      hostApp.navigationBars["Clip Combine"].waitForExistence(timeout: 5),
-      "Clip Combine host app should launch before opening Photos."
+      hostApp.navigationBars["Merge Videos"].waitForExistence(timeout: 5),
+      "Merge Videos host app should launch before opening Photos."
     )
 
     // 2. Ensure the simulator's Photos library contains at least 2 videos.
@@ -85,20 +85,20 @@ final class PhotosShareSheetUITests: XCTestCase {
     XCTAssertTrue(shareButton.waitForExistence(timeout: 5), "Photos Share button should exist.")
     shareButton.tap()
 
-    // 6. Verify 'Clip Combine' appears in the Share Sheet (either directly or under 'More').
-    let clipCombineInShareSheet = findClipCombineInShareSheet(in: photos)
+    // 6. Verify 'Merge Videos' appears in the Share Sheet (either directly or under 'More').
+    let mergeVideosInShareSheet = findMergeVideosInShareSheet(in: photos)
     XCTAssertNotNil(
-      clipCombineInShareSheet,
-      "Clip Combine must appear in the iOS Photos Share Sheet when 2 videos are selected."
+      mergeVideosInShareSheet,
+      "Merge Videos must appear in the iOS Photos Share Sheet when 2 videos are selected."
     )
 
-    // 7. Tap 'Clip Combine' and verify the Share Extension UI loads both clips.
-    clipCombineInShareSheet?.tap()
+    // 7. Tap 'Merge Videos' and verify the Share Extension UI loads both clips.
+    mergeVideosInShareSheet?.tap()
 
-    let mergeTitle = photos.navigationBars["Merge Clips"].firstMatch
+    let mergeTitle = photos.navigationBars["Merge Videos"].firstMatch
     XCTAssertTrue(
       mergeTitle.waitForExistence(timeout: 12),
-      "Clip Combine Share Extension should present the 'Merge Clips' view."
+      "Merge Videos Share Extension should present the 'Merge Videos' view."
     )
 
     let dragHeader = photos.staticTexts["Drag to Reorder"].firstMatch
@@ -123,13 +123,13 @@ final class PhotosShareSheetUITests: XCTestCase {
     let cancelButton = mergeTitle.buttons["Cancel"].firstMatch
     XCTAssertTrue(
       cancelButton.waitForExistence(timeout: 3),
-      "'Merge Clips' navigation bar should contain a 'Cancel' button."
+      "'Merge Videos' navigation bar should contain a 'Cancel' button."
     )
     cancelButton.tap()
 
     XCTAssertTrue(
       mergeTitle.waitForNonExistence(timeout: 8),
-      "Tapping Cancel should dismiss the Clip Combine Share Extension."
+      "Tapping Cancel should dismiss the Merge Videos Share Extension."
     )
   }
 
@@ -146,15 +146,15 @@ final class PhotosShareSheetUITests: XCTestCase {
     }
   }
 
-  /// Searches the iOS Share Sheet apps row (and the 'More' apps list if needed) for 'Clip Combine'.
-  private func findClipCombineInShareSheet(in photos: XCUIApplication) -> XCUIElement? {
+  /// Searches the iOS Share Sheet apps row (and the 'More' apps list if needed) for 'Merge Videos'.
+  private func findMergeVideosInShareSheet(in photos: XCUIApplication) -> XCUIElement? {
     let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
     let candidates: [XCUIElement] = [
-      photos.cells["Clip Combine"].firstMatch,
-      photos.buttons["Clip Combine"].firstMatch,
-      photos.staticTexts["Clip Combine"].firstMatch,
-      springboard.cells["Clip Combine"].firstMatch,
-      springboard.buttons["Clip Combine"].firstMatch,
+      photos.cells["Merge Videos"].firstMatch,
+      photos.buttons["Merge Videos"].firstMatch,
+      photos.staticTexts["Merge Videos"].firstMatch,
+      springboard.cells["Merge Videos"].firstMatch,
+      springboard.buttons["Merge Videos"].firstMatch,
     ]
 
     // Wait briefly for the Share Sheet apps row to populate.
@@ -166,7 +166,7 @@ final class PhotosShareSheetUITests: XCTestCase {
       RunLoop.current.run(until: Date().addingTimeInterval(0.25))
     }
 
-    // If Clip Combine is further right in the apps row, open 'More' to inspect all Share Extensions.
+    // If Merge Videos is further right in the apps row, open 'More' to inspect all Share Extensions.
     let moreCandidates: [XCUIElement] = [
       photos.cells["More"].firstMatch,
       photos.buttons["More"].firstMatch,
@@ -204,7 +204,7 @@ final class PhotosShareSheetUITests: XCTestCase {
 
     let needed = 2 - existingVideos.count
     let tempDir = FileManager.default.temporaryDirectory
-      .appendingPathComponent("ClipCombineUITestFixtures", isDirectory: true)
+      .appendingPathComponent("MergeVideosUITestFixtures", isDirectory: true)
     try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tempDir) }
 

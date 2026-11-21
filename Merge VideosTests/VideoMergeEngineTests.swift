@@ -4,14 +4,14 @@ import CoreLocation
 import Foundation
 import Testing
 import UniformTypeIdentifiers
-@testable import Clip_Combine
+@testable import Merge_Videos
 
 @Suite("VideoMergeEngine")
 struct VideoMergeEngineTests {
 
   private func makeTempDirectory() throws -> URL {
     let dir = FileManager.default.temporaryDirectory
-      .appendingPathComponent("ClipCombineEngineTests", isDirectory: true)
+      .appendingPathComponent("MergeVideosEngineTests", isDirectory: true)
       .appendingPathComponent(UUID().uuidString, isDirectory: true)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     return dir

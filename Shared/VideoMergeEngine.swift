@@ -66,7 +66,7 @@ public nonisolated enum VideoMergeError: LocalizedError, Sendable {
     case .insufficientClips:
       "Select at least 2 videos to merge."
     case .photoLibraryAccessDenied:
-      "Photo Library access is needed to save your merged video. Enable access in the Clip Combine app or Settings."
+      "Photo Library access is needed to save your merged video. Enable access in the Merge Videos app or Settings."
     case .unreadableVideo:
       "One of the selected videos could not be loaded."
     case .compositionFailed(let reason):
@@ -105,7 +105,7 @@ public actor VideoMergeEngine {
     }
 
     let sessionDir = FileManager.default.temporaryDirectory
-      .appendingPathComponent("ClipCombineInput", isDirectory: true)
+      .appendingPathComponent("MergeVideosInput", isDirectory: true)
       .appendingPathComponent(UUID().uuidString, isDirectory: true)
     try FileManager.default.createDirectory(at: sessionDir, withIntermediateDirectories: true)
 
@@ -142,7 +142,7 @@ public actor VideoMergeEngine {
       parentDirs.insert(clip.fileURL.deletingLastPathComponent())
       try? FileManager.default.removeItem(at: clip.fileURL)
     }
-    for dir in parentDirs where dir.path.contains("ClipCombineInput") {
+    for dir in parentDirs where dir.path.contains("MergeVideosInput") {
       try? FileManager.default.removeItem(at: dir)
     }
   }
@@ -171,10 +171,10 @@ public actor VideoMergeEngine {
 
     // 1. Prepare temporary export destination inside the shared App Group container.
     let exportDir = AppSettings.sharedContainerURL
-      .appendingPathComponent("ClipCombineExports", isDirectory: true)
+      .appendingPathComponent("MergeVideosExports", isDirectory: true)
     try FileManager.default.createDirectory(at: exportDir, withIntermediateDirectories: true)
 
-    let outputURL = exportDir.appendingPathComponent("ClipCombine-\(UUID().uuidString).mov")
+    let outputURL = exportDir.appendingPathComponent("MergeVideos-\(UUID().uuidString).mov")
     defer {
       try? FileManager.default.removeItem(at: outputURL)
     }

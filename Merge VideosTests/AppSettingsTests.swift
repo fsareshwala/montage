@@ -1,12 +1,12 @@
 import Foundation
 import Testing
-@testable import Clip_Combine
+@testable import Merge_Videos
 
 @Suite("AppSettings and Shared Preferences")
 @MainActor
 struct AppSettingsTests {
   private func makeIsolatedDefaults() -> (UserDefaults, String) {
-    let suiteName = "com.sareshwala.faraaz.clipcombine.tests.\(UUID().uuidString)"
+    let suiteName = "com.sareshwala.faraaz.mergevideos.tests.\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: suiteName)!
     defaults.removePersistentDomain(forName: suiteName)
     return (defaults, suiteName)
@@ -129,7 +129,7 @@ struct AppSettingsTests {
 
   @Test("App Group identifier and shared container URL are valid")
   func appGroupConfiguration() {
-    #expect(AppSettings.appGroupIdentifier == "group.com.sareshwala.faraaz.clipcombine")
+    #expect(AppSettings.appGroupIdentifier == "group.com.sareshwala.faraaz.mergevideos")
     #expect(AppSettings.sharedContainerURL.isFileURL)
   }
 

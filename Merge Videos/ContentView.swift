@@ -2,7 +2,7 @@ import Photos
 import SwiftUI
 import UIKit
 
-/// Apple-Settings-style configuration view for the Clip Combine host app.
+/// Apple-Settings-style configuration view for the Merge Videos host app.
 /// All preferences persist immediately to the shared App Group `UserDefaults`
 /// so the Share Extension reads them automatically.
 struct ContentView: View {
@@ -25,7 +25,7 @@ struct ContentView: View {
         hygieneSection
         uniformLengthSection
       }
-      .navigationTitle("Clip Combine")
+      .navigationTitle("Merge Videos")
       .navigationBarTitleDisplayMode(.large)
       .animation(.snappy(duration: 0.25), value: settings.transitionStyle)
       .animation(.snappy(duration: 0.25), value: settings.autoTrimEnabled)
@@ -92,7 +92,7 @@ struct ContentView: View {
   private var fullAccessBannerButton: some View {
     VStack(alignment: .leading, spacing: 10) {
       Text(
-        "Full Photo Library access lets Clip Combine copy the original date and GPS location onto your montage and optionally clean up individual source clips."
+        "Full Photo Library access lets Merge Videos copy the original date and GPS location onto your montage and optionally clean up individual source clips."
       )
       .font(.footnote)
       .foregroundStyle(.secondary)
@@ -139,7 +139,7 @@ struct ContentView: View {
           stepNumber: 2,
           symbolName: "square.and.arrow.up",
           tint: .indigo,
-          text: "Tap Share and pick Clip Combine"
+          text: "Tap Share and pick Merge Videos"
         )
         QuickGuideStepRow(
           stepNumber: 3,
@@ -206,13 +206,13 @@ struct ContentView: View {
     case .limited:
       "Upgrade to Full Access to preserve dates, locations, and clean up source clips."
     case .notDetermined:
-      "Grant access so Clip Combine can save merged videos back to your library."
+      "Grant access so Merge Videos can save merged videos back to your library."
     case .denied:
-      "Open iOS Settings to grant Clip Combine access to your Photo Library."
+      "Open iOS Settings to grant Merge Videos access to your Photo Library."
     case .restricted:
       "Photo Library access is restricted on this device."
     @unknown default:
-      "Grant Photo Library access to use Clip Combine."
+      "Grant Photo Library access to use Merge Videos."
     }
   }
 
