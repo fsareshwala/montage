@@ -34,6 +34,7 @@
         { "path": "<PRODUCTS>/ShareExtension.appex", "id": "BB625F8930B11AE80077AF55", "type": "wrapper.app-extension", "index": false, "target-membership": [ { "build-phase": "Clip Combine/copy/Embed Foundation Extensions", "header-preservation": "remove-on-copy" } ] },
       ],
     },
+    { "kind": "folder", "path": "Shared", "target-membership": [ "Clip Combine", "ShareExtension" ] },
   ],
   "targets": [
     {
