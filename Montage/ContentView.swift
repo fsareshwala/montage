@@ -2,7 +2,7 @@ import Photos
 import SwiftUI
 import UIKit
 
-/// Apple-Settings-style configuration view for the Merge Videos host app.
+/// Apple-Settings-style configuration view for the Montage host app.
 /// All preferences persist immediately to the shared App Group `UserDefaults`
 /// so the Share Extension reads them automatically.
 struct ContentView: View {
@@ -28,7 +28,7 @@ struct ContentView: View {
         aboutSection
         otherAppsSection
       }
-      .navigationTitle("Merge Videos")
+      .navigationTitle("Montage")
       .navigationBarTitleDisplayMode(.large)
       .animation(
         AnimationCompatibility.shared.snappy(duration: 0.25), value: settings.transitionStyle
@@ -117,7 +117,7 @@ struct ContentView: View {
       .disabled(isRequestingAccess)
 
       Text(
-        "Full Photo Library access lets Merge Videos copy the original date and GPS location onto your montage and optionally clean up individual source clips."
+        "Full Photo Library access lets Montage copy the original date and GPS location onto your montage and optionally clean up individual source clips."
       )
       .font(.footnote)
       .foregroundStyle(.secondary)
@@ -137,7 +137,7 @@ struct ContentView: View {
         )
         QuickGuideStepRow(
           symbolName: "square.and.arrow.up",
-          text: "Tap Share and pick Merge Videos"
+          text: "Tap Share and pick Montage"
         )
         QuickGuideStepRow(
           symbolName: "arrow.up.arrow.down.circle",
@@ -202,13 +202,13 @@ struct ContentView: View {
     case .limited:
       "Upgrade to Full Access to preserve dates, locations, and clean up source clips."
     case .notDetermined:
-      "Grant access so Merge Videos can save merged videos back to your library."
+      "Grant access so Montage can save merged videos back to your library."
     case .denied:
-      "Open iOS Settings to grant Merge Videos access to your Photo Library."
+      "Open iOS Settings to grant Montage access to your Photo Library."
     case .restricted:
       "Photo Library access is restricted on this device."
     @unknown default:
-      "Grant Photo Library access to use Merge Videos."
+      "Grant Photo Library access to use Montage."
     }
   }
 
@@ -293,8 +293,8 @@ struct ContentView: View {
 
   // MARK: - Section 6: About
 
-  private static let githubURL = URL(string: "https://github.com/fsareshwala/merge-videos")!
-  private static let issuesURL = URL(string: "https://github.com/fsareshwala/merge-videos/issues")!
+  private static let githubURL = URL(string: "https://github.com/fsareshwala/montage")!
+  private static let issuesURL = URL(string: "https://github.com/fsareshwala/montage/issues")!
 
   private var aboutSection: some View {
     Section("About") {
@@ -314,10 +314,10 @@ struct ContentView: View {
 
       CompatibleShareLink(
         item: Self.githubURL,
-        message: "Check out Merge Videos, the easiest way to merge clips from Photos!"
+        message: "Check out Montage, the easiest way to merge clips from Photos!"
       ) {
         Label {
-          Text("Share Merge Videos")
+          Text("Share Montage")
             .foregroundStyle(.primary)
         } icon: {
           SettingIcon(
