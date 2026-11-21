@@ -31,8 +31,8 @@ agents must keep this file synchronized with code changes.
 ### 3. Configurable Clip Transitions (Host App Setting)
 
 - **Behavior:** `Picker` controls in Host App for transition style (`None` [Default],
-  `Cross Dissolve`, `Dip to Black`, `Slide`) and transition duration (`0.25s`, `0.5s` [Default],
-  `0.75s`) using A/B `AVMutableCompositionTrack` lanes and audio crossfades.
+  `Cross Dissolve`, `Dip to Black`, `Slide`) and transition duration (`0.25 seconds`, `0.5 seconds`
+  [Default], `0.75 seconds`) using A/B `AVMutableCompositionTrack` lanes and audio crossfades.
 - **Provenance & Rationale:** Allows subtle polish between clips while defaulting to instant cuts
   for fastest export speed.
 - **Key Files:** `Shared/AppSettings.swift`, `Shared/VideoMergeEngine.swift`.
@@ -71,6 +71,9 @@ agents must keep this file synchronized with code changes.
 _(Agents: Append new entries below in reverse-chronological order whenever features are added or
 modified.)_
 
+- **v1.0 (Transition Duration Labels):** Updated transition duration display labels in
+  `Shared/AppSettings.swift` from `0.25s`, `0.5s`, and `0.75s` to `0.25 seconds`, `0.5 seconds`,
+  and `0.75 seconds`, along with unit and UI tests.
 - **v1.0 (Transition Duration Picker):** Replaced the segmented control for Transition Duration in
   `Merge Videos/ContentView.swift` with a standard form `Picker` matching Transition Style, and
   updated `Merge VideosUITests/HostAppUITests.swift`.

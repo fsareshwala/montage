@@ -145,11 +145,11 @@ struct AppSettingsTests {
 
     #expect(TransitionDuration.allCases == [.short, .medium, .long])
     #expect(TransitionDuration.short.rawValue == 0.25)
-    #expect(TransitionDuration.short.displayName == "0.25s")
+    #expect(TransitionDuration.short.displayName == "0.25 seconds")
     #expect(TransitionDuration.medium.rawValue == 0.5)
-    #expect(TransitionDuration.medium.displayName == "0.5s")
+    #expect(TransitionDuration.medium.displayName == "0.5 seconds")
     #expect(TransitionDuration.long.rawValue == 0.75)
-    #expect(TransitionDuration.long.displayName == "0.75s")
+    #expect(TransitionDuration.long.displayName == "0.75 seconds")
     for duration in TransitionDuration.allCases {
       #expect(duration.id == duration.rawValue)
       #expect(!duration.displayName.isEmpty)

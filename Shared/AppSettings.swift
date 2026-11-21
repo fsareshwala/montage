@@ -35,11 +35,11 @@ public nonisolated enum TransitionDuration: Double, CaseIterable, Identifiable, 
   public var displayName: String {
     switch self {
     case .short:
-      "0.25s"
+      "0.25 seconds"
     case .medium:
-      "0.5s"
+      "0.5 seconds"
     case .long:
-      "0.75s"
+      "0.75 seconds"
     }
   }
 }

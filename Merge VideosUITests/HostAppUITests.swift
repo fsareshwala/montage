@@ -96,7 +96,7 @@ final class HostAppUITests: XCTestCase {
     )
     durationPicker.tap()
 
-    let longDurationOption = app.buttons["0.75s"]
+    let longDurationOption = app.buttons["0.75 seconds"]
     XCTAssertTrue(longDurationOption.waitForExistence(timeout: 3))
     longDurationOption.tap()
 
@@ -144,8 +144,8 @@ final class HostAppUITests: XCTestCase {
     ).firstMatch
     XCTAssertTrue(persistedDurationPicker.waitForExistence(timeout: 3))
     XCTAssertTrue(
-      persistedDurationPicker.label.contains("0.75s"),
-      "Transition Duration should persist as 0.75s after relaunch, got: \(persistedDurationPicker.label)"
+      persistedDurationPicker.label.contains("0.75 seconds"),
+      "Transition Duration should persist as 0.75 seconds after relaunch, got: \(persistedDurationPicker.label)"
     )
 
     // Restore clean defaults (Instant Cut + Auto-Trim OFF)
