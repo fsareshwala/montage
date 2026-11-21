@@ -4,13 +4,13 @@ import CoreLocation
 import Foundation
 import Testing
 
-@testable import Merge_Videos
+@testable import Montage
 
 @Suite("VideoMergeEngine")
 struct VideoMergeEngineTests {
 
   private func makeTempDirectory() throws -> URL {
-    try TestVideoFixtureFactory.makeTempDirectory(named: "MergeVideosEngineTests")
+    try TestVideoFixtureFactory.makeTempDirectory(named: "MontageEngineTests")
   }
 
   private func makeClipItem(

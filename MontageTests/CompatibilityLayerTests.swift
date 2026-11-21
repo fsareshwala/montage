@@ -6,7 +6,7 @@ import SwiftUI
 import Testing
 import UIKit
 
-@testable import Merge_Videos
+@testable import Montage
 
 @Suite("iOS Compatibility Layers")
 struct CompatibilityLayerTests {
@@ -137,9 +137,9 @@ struct CompatibilityLayerTests {
   @Test("CompatibleShareLink hosts cleanly on MainActor")
   @MainActor
   func compatibleShareLinkHostsSafely() throws {
-    let url = try #require(URL(string: "https://github.com/fsareshwala/merge-videos"))
-    let view = CompatibleShareLink(item: url, message: "Check out Merge Videos!") {
-      Label("Share Merge Videos", systemImage: "square.and.arrow.up")
+    let url = try #require(URL(string: "https://github.com/fsareshwala/montage"))
+    let view = CompatibleShareLink(item: url, message: "Check out Montage!") {
+      Label("Share Montage", systemImage: "square.and.arrow.up")
     }
     let controller = UIHostingController(rootView: view)
     controller.loadViewIfNeeded()

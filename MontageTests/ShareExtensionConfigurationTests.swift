@@ -6,9 +6,9 @@ struct ShareExtensionConfigurationTests {
 
   @Test("Host app Info.plist has expected display name, bundle ID, and clean usage description")
   func hostAppPhotoUsageDescription() throws {
-    #expect(Bundle.main.bundleIdentifier == "com.sareshwala.faraaz.mergevideos")
+    #expect(Bundle.main.bundleIdentifier == "com.sareshwala.faraaz.montage")
     #expect(
-      Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String == "Merge Videos")
+      Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String == "Montage")
 
     let usage = try #require(
       Bundle.main.object(forInfoDictionaryKey: "NSPhotoLibraryUsageDescription") as? String
@@ -23,8 +23,8 @@ struct ShareExtensionConfigurationTests {
     let extensionBundle = try Bundle.embeddedShareExtension()
     let info = try #require(extensionBundle.infoDictionary)
 
-    #expect(extensionBundle.bundleIdentifier == "com.sareshwala.faraaz.mergevideos.share")
-    #expect(info["CFBundleDisplayName"] as? String == "Merge Videos")
+    #expect(extensionBundle.bundleIdentifier == "com.sareshwala.faraaz.montage.share")
+    #expect(info["CFBundleDisplayName"] as? String == "Montage")
 
     let usage = try #require(info["NSPhotoLibraryUsageDescription"] as? String)
     #expect(!usage.isEmpty)

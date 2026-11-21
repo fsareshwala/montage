@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 import Testing
 
-@testable import Merge_Videos
+@testable import Montage
 
 @Suite("MergeConfiguration, ClipItem, and Formatting")
 struct MergeConfigurationAndClipTests {
