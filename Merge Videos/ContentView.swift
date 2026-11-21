@@ -237,7 +237,13 @@ struct ContentView: View {
       .frame(minHeight: 44)
 
       if settings.transitionStyle != .none {
-        VStack(alignment: .leading, spacing: 10) {
+        Picker(selection: $settings.transitionDuration) {
+          ForEach(TransitionDuration.allCases) { duration in
+            Text(duration.displayName)
+              .monospacedDigit()
+              .tag(duration)
+          }
+        } label: {
           Label {
             Text("Transition Duration")
           } icon: {
@@ -246,18 +252,8 @@ struct ContentView: View {
               color: .teal
             )
           }
-
-          Picker("Transition Duration", selection: $settings.transitionDuration) {
-            ForEach(TransitionDuration.allCases) { duration in
-              Text(duration.displayName)
-                .monospacedDigit()
-                .tag(duration)
-            }
-          }
-          .pickerStyle(.segmented)
-          .frame(minHeight: 36)
         }
-        .padding(.vertical, 4)
+        .frame(minHeight: 44)
       }
     }
   }

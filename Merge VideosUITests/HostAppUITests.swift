@@ -86,13 +86,19 @@ final class HostAppUITests: XCTestCase {
     XCTAssertTrue(crossDissolveOption.waitForExistence(timeout: 3))
     crossDissolveOption.tap()
 
-    // Selecting an animated transition should reveal the duration segmented control
-    let longDurationButton = app.buttons["0.7s"]
+    // Selecting an animated transition should reveal the duration picker
+    let durationPicker = app.buttons.matching(
+      NSPredicate(format: "label CONTAINS 'Transition Duration'")
+    ).firstMatch
     XCTAssertTrue(
-      longDurationButton.waitForExistence(timeout: 3),
-      "Transition Duration segmented picker should appear when an animated transition is selected."
+      durationPicker.waitForExistence(timeout: 3),
+      "Transition Duration picker should appear when an animated transition is selected."
     )
-    longDurationButton.tap()
+    durationPicker.tap()
+
+    let longDurationOption = app.buttons["0.75s"]
+    XCTAssertTrue(longDurationOption.waitForExistence(timeout: 3))
+    longDurationOption.tap()
 
     // Scroll to Auto-Trim toggle and turn it ON
     let autoTrimSwitch = app.switches["Auto-Trim to Fixed Intervals"]
@@ -133,7 +139,14 @@ final class HostAppUITests: XCTestCase {
       persistedTransitionPicker.label.contains("Cross Dissolve"),
       "Transition Style should persist as Cross Dissolve after relaunch, got: \(persistedTransitionPicker.label)"
     )
-    XCTAssertTrue(app.buttons["0.7s"].waitForExistence(timeout: 3))
+    let persistedDurationPicker = app.buttons.matching(
+      NSPredicate(format: "label CONTAINS 'Transition Duration'")
+    ).firstMatch
+    XCTAssertTrue(persistedDurationPicker.waitForExistence(timeout: 3))
+    XCTAssertTrue(
+      persistedDurationPicker.label.contains("0.75s"),
+      "Transition Duration should persist as 0.75s after relaunch, got: \(persistedDurationPicker.label)"
+    )
 
     // Restore clean defaults (Instant Cut + Auto-Trim OFF)
     persistedTransitionPicker.tap()
