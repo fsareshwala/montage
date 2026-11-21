@@ -101,8 +101,8 @@ final class HostAppUITests: XCTestCase {
       "Transition Duration should persist as 0.75 seconds after relaunch, got: \(persistedDurationPicker.label)"
     )
 
-    // Restore clean defaults (Instant Cut + Auto-Trim OFF)
-    selectPickerOption("None (Instant Cut)", from: "Transition Style", in: app)
+    // Restore clean defaults (None + Auto-Trim OFF)
+    selectPickerOption("None", from: "Transition Style", in: app)
 
     let resetAutoTrimSwitch = app.switches["Auto-Trim to Fixed Intervals"]
     scrollIntoView(resetAutoTrimSwitch, in: app)

@@ -137,6 +137,7 @@ struct AppSettingsTests {
   @Test("Setting option enums expose complete, clean display names and values")
   func optionEnumsMetadata() {
     #expect(TransitionStyle.allCases == [.none, .crossDissolve, .dipToBlack, .slide])
+    #expect(TransitionStyle.none.displayName == "None")
     for style in TransitionStyle.allCases {
       #expect(style.id == style.rawValue)
       #expect(!style.displayName.isEmpty)

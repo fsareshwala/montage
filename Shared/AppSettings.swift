@@ -18,7 +18,7 @@ public nonisolated enum TransitionStyle: String, SettingOption {
   public var displayName: String {
     switch self {
     case .none:
-      "None (Instant Cut)"
+      "None"
     case .crossDissolve:
       "Cross Dissolve"
     case .dipToBlack:
