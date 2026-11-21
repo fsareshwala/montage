@@ -243,7 +243,7 @@ struct ContentView: View {
       SettingToggleRow(
         title: "Preserve Metadata",
         description:
-          "Copies the capture date, time, and GPS location from the first clip onto the merged video so it stays in chronological order in your library.",
+          "Copy the capture date, time, and GPS location from the first clip onto the merged video.",
         systemImage: "calendar.badge.clock",
         color: .accentColor,
         isOn: $settings.preserveMetadata
@@ -252,7 +252,7 @@ struct ContentView: View {
       SettingToggleRow(
         title: "Post-Merge Source Cleanup",
         description:
-          "Prompts you to delete the individual source clips from Photos right after the merged montage is safely saved.",
+          "Prompt to delete the individual source clips from Photos after the merged montage is saved.",
         systemImage: "trash",
         color: .red,
         isOn: $settings.deleteSourceClipsAfterMerge
@@ -284,14 +284,8 @@ struct ContentView: View {
   }
 
   private var autoTrimDescriptionText: String {
-    guard settings.autoTrimEnabled else {
-      return
-        "Automatically trims the end of the merged video down to the nearest fixed interval (15 seconds, 30 seconds, or 1 minute) so your montages have uniform lengths in your library. Footage past the last completed interval is trimmed off; videos shorter than one interval are untouched."
-    }
-
-    let interval = settings.autoTrimInterval
     return
-      "Automatically trims the end of the merged video down to the nearest \(interval.markLabel) mark (\(interval.exampleMarks)) so your montages have uniform lengths in your library. Footage past the last completed interval is trimmed off; videos under \(interval.displayName) are untouched."
+      "Trim merged video down to the nearest fixed interval. Footage past the last completed interval is trimmed off. Videos shorter than one interval are untouched."
   }
 
   // MARK: - Section 6: About
