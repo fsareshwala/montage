@@ -108,7 +108,7 @@ struct ContentView: View {
           } else {
             Image(
               systemName: photoAuthStatus == .notDetermined
-                ? SystemSymbolCompatibility.shared.photoAccessRequest : "gearshape.fill")
+                ? SystemSymbolCompatibility.shared.photoAccessRequest : "gearshape")
           }
           Text("Enable Full Photo Access")
             .font(.headline)
@@ -149,13 +149,13 @@ struct ContentView: View {
   private var statusBadgeSymbol: String {
     switch photoAuthStatus {
     case .authorized:
-      "checkmark.circle.fill"
+      "checkmark.circle"
     case .limited:
-      "exclamationmark.triangle.fill"
+      "exclamationmark.triangle"
     case .notDetermined:
       "photo.on.rectangle.angled"
     case .denied, .restricted:
-      "lock.fill"
+      "lock"
     @unknown default:
       "photo.on.rectangle.angled"
     }
@@ -168,11 +168,11 @@ struct ContentView: View {
     case .limited:
       .orange
     case .notDetermined:
-      .blue
+      .accentColor
     case .denied, .restricted:
       .red
     @unknown default:
-      .blue
+      .accentColor
     }
   }
 
@@ -223,8 +223,8 @@ struct ContentView: View {
           Text("Transition Style")
         } icon: {
           SettingIconBadge(
-            systemImage: "sparkles.rectangle.stack.fill",
-            color: .indigo
+            systemImage: "sparkles.rectangle.stack",
+            color: .accentColor
           )
         }
       }
@@ -243,7 +243,7 @@ struct ContentView: View {
           } icon: {
             SettingIconBadge(
               systemImage: "timer",
-              color: .teal
+              color: .accentColor
             )
           }
         }
@@ -263,7 +263,7 @@ struct ContentView: View {
           } icon: {
             SettingIconBadge(
               systemImage: "calendar.badge.clock",
-              color: .blue
+              color: .accentColor
             )
           }
         }
@@ -284,7 +284,7 @@ struct ContentView: View {
             Text("Post-Merge Source Cleanup")
           } icon: {
             SettingIconBadge(
-              systemImage: "trash.fill",
+              systemImage: "trash",
               color: .red
             )
           }
@@ -312,7 +312,7 @@ struct ContentView: View {
         } icon: {
           SettingIconBadge(
             systemImage: "scissors",
-            color: .purple
+            color: .accentColor
           )
         }
       }
@@ -331,7 +331,7 @@ struct ContentView: View {
           } icon: {
             SettingIconBadge(
               systemImage: "clock.arrow.2.circlepath",
-              color: .purple
+              color: .accentColor
             )
           }
         }

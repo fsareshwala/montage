@@ -41,7 +41,7 @@ public nonisolated final class SystemSymbolCompatibility: Sendable {
     if #available(iOS 17, *) {
       "photo.badge.checkmark"
     } else {
-      "checkmark.circle.fill"
+      "checkmark.circle"
     }
   }
 
