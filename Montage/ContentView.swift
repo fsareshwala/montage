@@ -31,10 +31,12 @@ struct ContentView: View {
       .navigationTitle("Montage")
       .navigationBarTitleDisplayMode(.large)
       .animation(
-        AnimationCompatibility.shared.snappy(duration: 0.25), value: settings.transitionStyle
+        AnimationCompatibility.shared.snappy(duration: 0.25),
+        value: settings.transitionStyle
       )
       .animation(
-        AnimationCompatibility.shared.snappy(duration: 0.25), value: settings.autoTrimEnabled
+        AnimationCompatibility.shared.snappy(duration: 0.25),
+        value: settings.autoTrimEnabled
       )
       .compatibleSensoryFeedback(.selection, trigger: settings.transitionStyle)
       .compatibleSensoryFeedback(.selection, trigger: settings.transitionDuration)
@@ -106,7 +108,8 @@ struct ContentView: View {
           } else {
             Image(
               systemName: photoAuthStatus == .notDetermined
-                ? SystemSymbolCompatibility.shared.photoAccessRequest : "gearshape")
+                ? SystemSymbolCompatibility.shared.photoAccessRequest : "gearshape"
+            )
           }
           Text("Enable Full Photo Access")
             .font(.headline)
