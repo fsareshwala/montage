@@ -20,15 +20,20 @@ struct ContentView: View {
   var body: some View {
     CompatibleNavigationContainer {
       Form {
-        statusAndGuideSection
+        photoAccessSection
+        howItWorksSection
         transitionsSection
         hygieneSection
         uniformLengthSection
       }
       .navigationTitle("Merge Videos")
       .navigationBarTitleDisplayMode(.large)
-      .animation(AnimationCompatibility.shared.snappy(duration: 0.25), value: settings.transitionStyle)
-      .animation(AnimationCompatibility.shared.snappy(duration: 0.25), value: settings.autoTrimEnabled)
+      .animation(
+        AnimationCompatibility.shared.snappy(duration: 0.25), value: settings.transitionStyle
+      )
+      .animation(
+        AnimationCompatibility.shared.snappy(duration: 0.25), value: settings.autoTrimEnabled
+      )
       .compatibleSensoryFeedback(.selection, trigger: settings.transitionStyle)
       .compatibleSensoryFeedback(.selection, trigger: settings.transitionDuration)
       .compatibleSensoryFeedback(.selection, trigger: settings.autoTrimInterval)
@@ -43,17 +48,15 @@ struct ContentView: View {
     }
   }
 
-  // MARK: - Section 1: Status and Quick Guide Card
+  // MARK: - Section 1: Photo Access Status
 
-  private var statusAndGuideSection: some View {
+  private var photoAccessSection: some View {
     Section {
       photoAccessStatusRow
 
       if needsFullAccessBanner {
         fullAccessBannerButton
       }
-
-      quickGuideView
     }
   }
 
@@ -70,7 +73,7 @@ struct ContentView: View {
 
   private var photoAccessStatusRow: some View {
     HStack(spacing: 12) {
-      SettingIconBadge(
+      SettingIcon(
         systemImage: statusBadgeSymbol,
         color: statusBadgeColor
       )
@@ -91,13 +94,6 @@ struct ContentView: View {
 
   private var fullAccessBannerButton: some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text(
-        "Full Photo Library access lets Merge Videos copy the original date and GPS location onto your montage and optionally clean up individual source clips."
-      )
-      .font(.footnote)
-      .foregroundStyle(.secondary)
-      .fixedSize(horizontal: false, vertical: true)
-
       Button {
         handlePhotoAccessAction()
       } label: {
@@ -118,16 +114,21 @@ struct ContentView: View {
       .buttonStyle(.borderedProminent)
       .buttonBorderShape(.roundedRectangle(radius: 12))
       .disabled(isRequestingAccess)
+
+      Text(
+        "Full Photo Library access lets Merge Videos copy the original date and GPS location onto your montage and optionally clean up individual source clips."
+      )
+      .font(.footnote)
+      .foregroundStyle(.secondary)
+      .fixedSize(horizontal: false, vertical: true)
     }
     .padding(.vertical, 4)
   }
 
-  private var quickGuideView: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      Text("How It Works")
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.secondary)
+  // MARK: - Section 2: How It Works
 
+  private var howItWorksSection: some View {
+    Section("How It Works") {
       VStack(alignment: .leading, spacing: 10) {
         QuickGuideStepRow(
           symbolName: SystemSymbolCompatibility.shared.photoStack,
@@ -142,8 +143,8 @@ struct ContentView: View {
           text: "Reorder and Merge into one video"
         )
       }
+      .padding(.vertical, 4)
     }
-    .padding(.vertical, 4)
   }
 
   private var statusBadgeSymbol: String {
@@ -210,149 +211,83 @@ struct ContentView: View {
     }
   }
 
-  // MARK: - Section 2: Transitions
+  // MARK: - Section 3: Transitions
 
   private var transitionsSection: some View {
     Section("Transitions") {
-      Picker(selection: $settings.transitionStyle) {
-        ForEach(TransitionStyle.allCases) { style in
-          Text(style.displayName).tag(style)
-        }
-      } label: {
-        Label {
-          Text("Transition Style")
-        } icon: {
-          SettingIconBadge(
-            systemImage: "sparkles.rectangle.stack",
-            color: .accentColor
-          )
-        }
-      }
-      .frame(minHeight: 44)
+      SettingPickerRow(
+        title: "Transition Style",
+        systemImage: "sparkles.rectangle.stack",
+        selection: $settings.transitionStyle
+      )
 
       if settings.transitionStyle != .none {
-        Picker(selection: $settings.transitionDuration) {
-          ForEach(TransitionDuration.allCases) { duration in
-            Text(duration.displayName)
-              .monospacedDigit()
-              .tag(duration)
-          }
-        } label: {
-          Label {
-            Text("Transition Duration")
-          } icon: {
-            SettingIconBadge(
-              systemImage: "timer",
-              color: .accentColor
-            )
-          }
-        }
-        .frame(minHeight: 44)
+        SettingPickerRow(
+          title: "Transition Duration",
+          systemImage: "timer",
+          monospacedDigit: true,
+          selection: $settings.transitionDuration
+        )
       }
     }
   }
 
-  // MARK: - Section 3: Photo Library Hygiene
+  // MARK: - Section 4: Photo Library Hygiene
 
   private var hygieneSection: some View {
     Section("Photo Library Hygiene") {
-      VStack(alignment: .leading, spacing: 6) {
-        Toggle(isOn: $settings.preserveMetadata) {
-          Label {
-            Text("Keep Original Date and Location")
-          } icon: {
-            SettingIconBadge(
-              systemImage: "calendar.badge.clock",
-              color: .accentColor
-            )
-          }
-        }
-        .frame(minHeight: 44)
+      SettingToggleRow(
+        title: "Keep Original Date and Location",
+        description:
+          "Copies the capture date, time, and GPS location from the first clip onto the merged video so it stays in chronological order in your library.",
+        systemImage: "calendar.badge.clock",
+        color: .accentColor,
+        isOn: $settings.preserveMetadata
+      )
 
-        Text(
-          "Copies the capture date, time, and GPS location from the first clip onto the merged video so it stays in chronological order in your library."
-        )
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      }
-      .padding(.vertical, 2)
-
-      VStack(alignment: .leading, spacing: 6) {
-        Toggle(isOn: $settings.deleteSourceClipsAfterMerge) {
-          Label {
-            Text("Post-Merge Source Cleanup")
-          } icon: {
-            SettingIconBadge(
-              systemImage: "trash",
-              color: .red
-            )
-          }
-        }
-        .frame(minHeight: 44)
-
-        Text(
-          "Prompts you to delete the individual source clips from Photos right after the merged montage is safely saved."
-        )
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-      }
-      .padding(.vertical, 2)
+      SettingToggleRow(
+        title: "Post-Merge Source Cleanup",
+        description:
+          "Prompts you to delete the individual source clips from Photos right after the merged montage is safely saved.",
+        systemImage: "trash",
+        color: .red,
+        isOn: $settings.deleteSourceClipsAfterMerge
+      )
     }
   }
 
-  // MARK: - Section 4: Uniform Video Length
+  // MARK: - Section 5: Uniform Video Length
 
   private var uniformLengthSection: some View {
-    Section {
-      Toggle(isOn: $settings.autoTrimEnabled) {
-        Label {
-          Text("Auto-Trim to Fixed Intervals")
-        } icon: {
-          SettingIconBadge(
-            systemImage: "scissors",
-            color: .accentColor
-          )
-        }
-      }
-      .frame(minHeight: 44)
+    Section("Uniform Video Length") {
+      SettingToggleRow(
+        title: "Auto-Trim to Fixed Intervals",
+        description: autoTrimDescriptionText,
+        systemImage: "scissors",
+        color: .accentColor,
+        isOn: $settings.autoTrimEnabled
+      )
 
       if settings.autoTrimEnabled {
-        Picker(selection: $settings.autoTrimInterval) {
-          ForEach(TrimInterval.allCases) { interval in
-            Text(interval.displayName)
-              .monospacedDigit()
-              .tag(interval)
-          }
-        } label: {
-          Label {
-            Text("Trim Interval")
-          } icon: {
-            SettingIconBadge(
-              systemImage: "clock.arrow.2.circlepath",
-              color: .accentColor
-            )
-          }
-        }
-        .frame(minHeight: 44)
+        SettingPickerRow(
+          title: "Trim Interval",
+          systemImage: "clock.arrow.2.circlepath",
+          monospacedDigit: true,
+          selection: $settings.autoTrimInterval
+        )
       }
-    } header: {
-      Text("Uniform Video Length")
-    } footer: {
-      Text(autoTrimFooterText)
-        .font(.footnote)
-        .foregroundStyle(.secondary)
     }
   }
 
-  private var autoTrimFooterText: String {
-    switch settings.autoTrimInterval {
-    case .thirtySeconds:
-      "Automatically trims the end of the merged video down to the nearest 30-second mark (0:30, 1:00, 1:30, 2:00, etc.) so your montages have uniform lengths in your library. Footage past the last completed interval is trimmed off; videos under 30 seconds are untouched."
-    case .oneMinute:
-      "Automatically trims the end of the merged video down to the nearest 1-minute mark (1:00, 2:00, 3:00, etc.) so your montages have uniform lengths in your library. Footage past the last completed interval is trimmed off; videos under 1 minute are untouched."
+  private var autoTrimDescriptionText: String {
+    guard settings.autoTrimEnabled else {
+      return
+        "Automatically trims the end of the merged video down to the nearest fixed interval (15 seconds, 30 seconds, or 1 minute) so your montages have uniform lengths in your library. Footage past the last completed interval is trimmed off; videos shorter than one interval are untouched."
     }
+
+    let interval = settings.autoTrimInterval
+    return
+      "Automatically trims the end of the merged video down to the nearest \(interval.markLabel) mark (\(interval.exampleMarks)) so your montages have uniform lengths in your library. Footage past the last completed interval is trimmed off; videos under \(interval.displayName) are untouched."
   }
 
   // MARK: - Actions
@@ -377,22 +312,86 @@ struct ContentView: View {
   }
 }
 
-// MARK: - Apple-Style Setting Icon Badge
+// MARK: - Setting Icon
 
-/// 28x28pt rounded-square SF Symbol icon badge styled after Apple's iOS Settings app.
-private struct SettingIconBadge: View {
+/// Standalone SF Symbol icon tinted with the setting's semantic or accent color.
+private struct SettingIcon: View {
   let systemImage: String
   let color: Color
 
   var body: some View {
     Image(systemName: systemImage)
-      .font(.subheadline.weight(.semibold))
-      .foregroundStyle(.white)
+      .font(.title3)
+      .foregroundStyle(color)
       .frame(width: 28, height: 28)
-      .background(
-        CompatibleGradientBadgeBackground(color: color, cornerRadius: 6)
-      )
       .accessibilityHidden(true)
+  }
+}
+
+// MARK: - Setting Picker Row
+
+private struct SettingPickerRow<Option: SettingOption>: View {
+  let title: String
+  let systemImage: String
+  var color: Color = .accentColor
+  var monospacedDigit: Bool = false
+  @Binding var selection: Option
+
+  var body: some View {
+    Picker(selection: $selection) {
+      ForEach(Array(Option.allCases)) { option in
+        optionText(for: option)
+          .tag(option)
+      }
+    } label: {
+      Label {
+        Text(title)
+      } icon: {
+        SettingIcon(
+          systemImage: systemImage,
+          color: color
+        )
+      }
+    }
+    .frame(minHeight: 44)
+  }
+
+  @ViewBuilder
+  private func optionText(for option: Option) -> some View {
+    if monospacedDigit {
+      Text(option.displayName).monospacedDigit()
+    } else {
+      Text(option.displayName)
+    }
+  }
+}
+
+// MARK: - Setting Toggle Row
+
+private struct SettingToggleRow: View {
+  let title: String
+  let description: String
+  let systemImage: String
+  let color: Color
+  @Binding var isOn: Bool
+
+  var body: some View {
+    HStack(alignment: .center, spacing: 12) {
+      SettingIcon(
+        systemImage: systemImage,
+        color: color
+      )
+
+      VStack(alignment: .leading, spacing: 10) {
+        Toggle(title, isOn: $isOn)
+
+        Text(description)
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+    }
+    .padding(.vertical, 4)
   }
 }
 

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import Merge_Videos
 
 @Suite("AppSettings and Shared Preferences")
@@ -155,9 +156,13 @@ struct AppSettingsTests {
       #expect(!duration.displayName.isEmpty)
     }
 
-    #expect(TrimInterval.allCases == [.thirtySeconds, .oneMinute])
+    #expect(TrimInterval.allCases == [.fifteenSeconds, .thirtySeconds, .oneMinute])
+    #expect(TrimInterval.fifteenSeconds.seconds == 15)
+    #expect(TrimInterval.fifteenSeconds.displayName == "15 seconds")
     #expect(TrimInterval.thirtySeconds.seconds == 30)
+    #expect(TrimInterval.thirtySeconds.displayName == "30 seconds")
     #expect(TrimInterval.oneMinute.seconds == 60)
+    #expect(TrimInterval.oneMinute.displayName == "1 minute")
     for interval in TrimInterval.allCases {
       #expect(interval.id == interval.rawValue)
       #expect(!interval.displayName.isEmpty)

@@ -1,8 +1,13 @@
 import Combine
 import Foundation
 
+/// Common interface for enumerable host-app picker options.
+public nonisolated protocol SettingOption: CaseIterable, Identifiable, Hashable, Sendable {
+  var displayName: String { get }
+}
+
 /// Transition styles available between merged video clips.
-public nonisolated enum TransitionStyle: String, CaseIterable, Identifiable, Sendable {
+public nonisolated enum TransitionStyle: String, SettingOption {
   case none
   case crossDissolve
   case dipToBlack
@@ -25,7 +30,7 @@ public nonisolated enum TransitionStyle: String, CaseIterable, Identifiable, Sen
 }
 
 /// Supported transition durations in seconds.
-public nonisolated enum TransitionDuration: Double, CaseIterable, Identifiable, Sendable {
+public nonisolated enum TransitionDuration: Double, SettingOption {
   case short = 0.25
   case medium = 0.5
   case long = 0.75
@@ -45,7 +50,8 @@ public nonisolated enum TransitionDuration: Double, CaseIterable, Identifiable, 
 }
 
 /// Fixed duration intervals for optional uniform video length trimming.
-public nonisolated enum TrimInterval: Int, CaseIterable, Identifiable, Sendable {
+public nonisolated enum TrimInterval: Int, SettingOption {
+  case fifteenSeconds = 15
   case thirtySeconds = 30
   case oneMinute = 60
 
@@ -57,10 +63,34 @@ public nonisolated enum TrimInterval: Int, CaseIterable, Identifiable, Sendable 
 
   public var displayName: String {
     switch self {
+    case .fifteenSeconds:
+      "15 seconds"
     case .thirtySeconds:
-      "30 seconds (0:30, 1:00, 1:30...)"
+      "30 seconds"
     case .oneMinute:
-      "1 minute (1:00, 2:00, 3:00...)"
+      "1 minute"
+    }
+  }
+
+  public var markLabel: String {
+    switch self {
+    case .fifteenSeconds:
+      "15-second"
+    case .thirtySeconds:
+      "30-second"
+    case .oneMinute:
+      "1-minute"
+    }
+  }
+
+  public var exampleMarks: String {
+    switch self {
+    case .fifteenSeconds:
+      "0:15, 0:30, 0:45, 1:00, etc."
+    case .thirtySeconds:
+      "0:30, 1:00, 1:30, 2:00, etc."
+    case .oneMinute:
+      "1:00, 2:00, 3:00, etc."
     }
   }
 }
@@ -75,12 +105,12 @@ public nonisolated struct MergeConfiguration: Sendable, Equatable {
   public let autoTrimInterval: TrimInterval
 
   public init(
-    transitionStyle: TransitionStyle,
-    transitionDuration: TimeInterval,
-    preserveMetadata: Bool,
-    deleteSourceClipsAfterMerge: Bool,
-    autoTrimEnabled: Bool,
-    autoTrimInterval: TrimInterval
+    transitionStyle: TransitionStyle = .none,
+    transitionDuration: TimeInterval = TransitionDuration.medium.rawValue,
+    preserveMetadata: Bool = true,
+    deleteSourceClipsAfterMerge: Bool = false,
+    autoTrimEnabled: Bool = false,
+    autoTrimInterval: TrimInterval = .thirtySeconds
   ) {
     self.transitionStyle = transitionStyle
     self.transitionDuration = transitionDuration
@@ -101,6 +131,15 @@ public nonisolated struct MergeConfiguration: Sendable, Equatable {
     return max(0, min(transitionDuration, maxAllowed))
   }
 
+  /// Returns the floored auto-trim target duration when auto-trim is enabled and
+  /// `duration` reaches at least one completed interval, or `nil` otherwise.
+  public func trimmedDuration(for duration: TimeInterval) -> TimeInterval? {
+    guard autoTrimEnabled else { return nil }
+    let interval = autoTrimInterval.seconds
+    guard interval > 0, duration >= interval else { return nil }
+    return floor(duration / interval) * interval
+  }
+
   /// Estimates the final output video duration given an ordered list of clip durations.
   public func estimatedOutputDuration(for clipDurations: [TimeInterval]) -> TimeInterval {
     guard !clipDurations.isEmpty else { return 0 }
@@ -118,11 +157,8 @@ public nonisolated struct MergeConfiguration: Sendable, Equatable {
 
     total = max(0, total)
 
-    if autoTrimEnabled {
-      let interval = autoTrimInterval.seconds
-      if total >= interval {
-        total = floor(total / interval) * interval
-      }
+    if let trimmed = trimmedDuration(for: total) {
+      total = trimmed
     }
 
     return total
@@ -189,6 +225,44 @@ public final class AppSettings: ObservableObject {
     }
   }
 
+  private struct StoredValues {
+    let transitionStyle: TransitionStyle
+    let transitionDuration: TransitionDuration
+    let preserveMetadata: Bool
+    let deleteSourceClipsAfterMerge: Bool
+    let autoTrimEnabled: Bool
+    let autoTrimInterval: TrimInterval
+  }
+
+  private static func loadStoredValues(from defaults: UserDefaults) -> StoredValues {
+    let transitionStyle =
+      defaults.string(forKey: Keys.transitionStyle).flatMap(TransitionStyle.init(rawValue:))
+      ?? .none
+
+    let storedDuration = defaults.double(forKey: Keys.transitionDuration)
+    let transitionDuration =
+      (storedDuration > 0 ? TransitionDuration(rawValue: storedDuration) : nil) ?? .medium
+
+    let preserveMetadata =
+      defaults.object(forKey: Keys.preserveMetadata) != nil
+      ? defaults.bool(forKey: Keys.preserveMetadata)
+      : true
+
+    let deleteSourceClipsAfterMerge = defaults.bool(forKey: Keys.deleteSourceClipsAfterMerge)
+    let autoTrimEnabled = defaults.bool(forKey: Keys.autoTrimEnabled)
+    let autoTrimInterval =
+      TrimInterval(rawValue: defaults.integer(forKey: Keys.autoTrimInterval)) ?? .thirtySeconds
+
+    return StoredValues(
+      transitionStyle: transitionStyle,
+      transitionDuration: transitionDuration,
+      preserveMetadata: preserveMetadata,
+      deleteSourceClipsAfterMerge: deleteSourceClipsAfterMerge,
+      autoTrimEnabled: autoTrimEnabled,
+      autoTrimInterval: autoTrimInterval
+    )
+  }
+
   public init(defaults: UserDefaults? = nil) {
     let isPreview = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
     let suite: UserDefaults
@@ -201,81 +275,35 @@ public final class AppSettings: ObservableObject {
     }
     self.defaults = suite
 
-    if let rawStyle = suite.string(forKey: Keys.transitionStyle),
-      let style = TransitionStyle(rawValue: rawStyle)
-    {
-      self.transitionStyle = style
-    } else {
-      self.transitionStyle = .none
-    }
-
-    let storedDuration = suite.double(forKey: Keys.transitionDuration)
-    if storedDuration > 0, let duration = TransitionDuration(rawValue: storedDuration) {
-      self.transitionDuration = duration
-    } else {
-      self.transitionDuration = .medium
-    }
-
-    if suite.object(forKey: Keys.preserveMetadata) != nil {
-      self.preserveMetadata = suite.bool(forKey: Keys.preserveMetadata)
-    } else {
-      self.preserveMetadata = true
-    }
-
-    self.deleteSourceClipsAfterMerge = suite.bool(forKey: Keys.deleteSourceClipsAfterMerge)
-    self.autoTrimEnabled = suite.bool(forKey: Keys.autoTrimEnabled)
-
-    let storedInterval = suite.integer(forKey: Keys.autoTrimInterval)
-    if let interval = TrimInterval(rawValue: storedInterval) {
-      self.autoTrimInterval = interval
-    } else {
-      self.autoTrimInterval = .thirtySeconds
-    }
+    let stored = Self.loadStoredValues(from: suite)
+    self.transitionStyle = stored.transitionStyle
+    self.transitionDuration = stored.transitionDuration
+    self.preserveMetadata = stored.preserveMetadata
+    self.deleteSourceClipsAfterMerge = stored.deleteSourceClipsAfterMerge
+    self.autoTrimEnabled = stored.autoTrimEnabled
+    self.autoTrimInterval = stored.autoTrimInterval
   }
 
   /// Re-reads all values from the shared App Group UserDefaults store.
   public func reload() {
-    let newStyle: TransitionStyle
-    if let rawStyle = defaults.string(forKey: Keys.transitionStyle),
-      let style = TransitionStyle(rawValue: rawStyle)
-    {
-      newStyle = style
-    } else {
-      newStyle = .none
+    let stored = Self.loadStoredValues(from: defaults)
+    if transitionStyle != stored.transitionStyle {
+      transitionStyle = stored.transitionStyle
     }
-    if transitionStyle != newStyle {
-      transitionStyle = newStyle
+    if transitionDuration != stored.transitionDuration {
+      transitionDuration = stored.transitionDuration
     }
-
-    let storedDuration = defaults.double(forKey: Keys.transitionDuration)
-    let newDuration: TransitionDuration =
-      (storedDuration > 0 ? TransitionDuration(rawValue: storedDuration) : nil) ?? .medium
-    if transitionDuration != newDuration {
-      transitionDuration = newDuration
+    if preserveMetadata != stored.preserveMetadata {
+      preserveMetadata = stored.preserveMetadata
     }
-
-    let newPreserveMetadata =
-      defaults.object(forKey: Keys.preserveMetadata) != nil
-      ? defaults.bool(forKey: Keys.preserveMetadata)
-      : true
-    if preserveMetadata != newPreserveMetadata {
-      preserveMetadata = newPreserveMetadata
+    if deleteSourceClipsAfterMerge != stored.deleteSourceClipsAfterMerge {
+      deleteSourceClipsAfterMerge = stored.deleteSourceClipsAfterMerge
     }
-
-    let newDeleteSources = defaults.bool(forKey: Keys.deleteSourceClipsAfterMerge)
-    if deleteSourceClipsAfterMerge != newDeleteSources {
-      deleteSourceClipsAfterMerge = newDeleteSources
+    if autoTrimEnabled != stored.autoTrimEnabled {
+      autoTrimEnabled = stored.autoTrimEnabled
     }
-
-    let newAutoTrim = defaults.bool(forKey: Keys.autoTrimEnabled)
-    if autoTrimEnabled != newAutoTrim {
-      autoTrimEnabled = newAutoTrim
-    }
-
-    let storedInterval = defaults.integer(forKey: Keys.autoTrimInterval)
-    let newInterval = TrimInterval(rawValue: storedInterval) ?? .thirtySeconds
-    if autoTrimInterval != newInterval {
-      autoTrimInterval = newInterval
+    if autoTrimInterval != stored.autoTrimInterval {
+      autoTrimInterval = stored.autoTrimInterval
     }
   }
 
