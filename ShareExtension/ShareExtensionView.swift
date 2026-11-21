@@ -186,18 +186,21 @@ struct ShareExtensionView: View {
   // MARK: - Floating Bottom Action Bar
 
   private var floatingBottomBar: some View {
-    VStack(spacing: 12) {
+    Group {
       if isCompleted {
         completedContent
+          .padding(16)
+          .frame(maxWidth: .infinity)
+          .compatibleFloatingBar(cornerRadius: 24)
       } else if let mergePhase {
         mergingProgressContent(phase: mergePhase)
+          .padding(16)
+          .frame(maxWidth: .infinity)
+          .compatibleFloatingBar(cornerRadius: 24)
       } else {
         mergeActionButton
       }
     }
-    .padding(16)
-    .frame(maxWidth: .infinity)
-    .compatibleFloatingBar(cornerRadius: 24)
     .padding(.horizontal, 16)
     .padding(.bottom, 8)
     .animation(AnimationCompatibility.shared.snappy(duration: 0.25), value: mergePhase)
@@ -211,8 +214,7 @@ struct ShareExtensionView: View {
         .font(.headline)
         .frame(maxWidth: .infinity, minHeight: 50)
     }
-    .buttonStyle(.borderedProminent)
-    .buttonBorderShape(.roundedRectangle(radius: 14))
+    .compatibleButtonStyle(.prominent)
     .disabled(clips.count < 2)
   }
 

@@ -111,8 +111,7 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 44)
       }
-      .buttonStyle(.borderedProminent)
-      .buttonBorderShape(.roundedRectangle(radius: 12))
+      .compatibleButtonStyle(.prominent)
       .disabled(isRequestingAccess)
 
       Text(

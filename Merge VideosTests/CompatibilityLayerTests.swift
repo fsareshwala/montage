@@ -2,6 +2,7 @@ import AVFoundation
 import CoreGraphics
 import CoreMedia
 import Foundation
+import SwiftUI
 import Testing
 import UIKit
 
@@ -114,5 +115,21 @@ struct CompatibilityLayerTests {
     let controller = HapticFeedbackController()
     controller.trigger(.selection)
     controller.trigger(.success)
+  }
+
+  @Test("compatibleButtonStyle hosts standard and prominent buttons safely on MainActor")
+  @MainActor
+  func compatibleButtonStyleHostsSafely() {
+    let view = VStack {
+      Button("Standard") {}
+        .compatibleButtonStyle(.standard)
+      Button("Prominent") {}
+        .compatibleButtonStyle(.prominent)
+    }
+    let controller = UIHostingController(rootView: view)
+    controller.loadViewIfNeeded()
+    let fittedSize = controller.sizeThatFits(in: CGSize(width: 320, height: 200))
+    #expect(fittedSize.width > 0)
+    #expect(fittedSize.height > 0)
   }
 }

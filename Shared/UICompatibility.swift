@@ -1,6 +1,18 @@
 import SwiftUI
 import UIKit
 
+// MARK: - Button Style Compatibility
+
+/// Button prominence levels backed by Liquid Glass styles on iOS 26+
+/// with standard bordered fallbacks on iOS 15–25.
+public nonisolated enum CompatibleButtonStyle: Sendable {
+  /// Standard Liquid Glass button (`.glass`) on iOS 26+, falling back to `.bordered` on iOS 15–25.
+  case standard
+  /// Prominent Liquid Glass button (`.glassProminent`) on iOS 26+,
+  /// falling back to `.borderedProminent` on iOS 15–25.
+  case prominent
+}
+
 // MARK: - Haptic / Sensory Feedback Compatibility
 
 /// Unified haptic feedback styles exposed across iOS 15 through iOS 27+.
@@ -158,7 +170,7 @@ public struct CompatibleContentUnavailableView: View {
         Text(description)
       } actions: {
         Button(actionTitle, action: action)
-          .buttonStyle(.borderedProminent)
+          .compatibleButtonStyle(.prominent)
           .frame(minHeight: 44)
       }
     } else {
@@ -180,7 +192,7 @@ public struct CompatibleContentUnavailableView: View {
           .fixedSize(horizontal: false, vertical: true)
 
         Button(actionTitle, action: action)
-          .buttonStyle(.borderedProminent)
+          .compatibleButtonStyle(.prominent)
           .frame(minHeight: 44)
           .padding(.top, 4)
       }
@@ -189,40 +201,17 @@ public struct CompatibleContentUnavailableView: View {
   }
 }
 
-// MARK: - Gradient Badge Background Compatibility
-
-/// Renders a rounded badge background using `Color.gradient` on iOS 16+ and a subtle
-/// `LinearGradient` fallback on iOS 15.
-public struct CompatibleGradientBadgeBackground: View {
-  private let color: Color
-  private let cornerRadius: CGFloat
-
-  public init(color: Color, cornerRadius: CGFloat = 6) {
-    self.color = color
-    self.cornerRadius = cornerRadius
-  }
-
-  public var body: some View {
-    let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-    if #available(iOS 16, *) {
-      shape.fill(color.gradient)
-    } else {
-      shape.fill(
-        LinearGradient(
-          colors: [color.opacity(0.85), color],
-          startPoint: .top,
-          endPoint: .bottom
-        )
-      )
-    }
-  }
-}
-
 // MARK: - View Modifier Compatibility Extensions
 
-public extension View {
+extension View {
+  /// Applies Liquid Glass button styling (`.glass` / `.glassProminent`) on iOS 26+
+  /// and falls back to `.bordered` / `.borderedProminent` on iOS 15–25.
+  public func compatibleButtonStyle(_ style: CompatibleButtonStyle) -> some View {
+    modifier(CompatibleButtonStyleModifier(style: style))
+  }
+
   /// Uses SwiftUI's `sensoryFeedback` on iOS 17+ and UIKit feedback generators on iOS 15–16.
-  func compatibleSensoryFeedback<Trigger: Equatable>(
+  public func compatibleSensoryFeedback<Trigger: Equatable>(
     _ style: CompatibleFeedbackStyle,
     trigger: Trigger
   ) -> some View {
@@ -230,7 +219,7 @@ public extension View {
   }
 
   /// Uses the two-parameter `onChange(of:)` on iOS 17+ and the single-parameter form on iOS 15–16.
-  func compatibleOnChange<Value: Equatable>(
+  public func compatibleOnChange<Value: Equatable>(
     of value: Value,
     perform action: @escaping (Value) -> Void
   ) -> some View {
@@ -238,22 +227,44 @@ public extension View {
   }
 
   /// Applies `.scrollDisabled` on iOS 16+ and leaves scrolling unmodified on iOS 15.
-  func compatibleScrollDisabled(_ disabled: Bool) -> some View {
+  public func compatibleScrollDisabled(_ disabled: Bool) -> some View {
     modifier(CompatibleScrollDisabledModifier(disabled: disabled))
   }
 
   /// Applies `.symbolEffect(.bounce, value:)` on iOS 17+ and a spring scale bounce on iOS 15–16.
-  func compatibleSymbolBounce<Value: Equatable>(value: Value) -> some View {
+  public func compatibleSymbolBounce<Value: Equatable>(value: Value) -> some View {
     modifier(CompatibleSymbolBounceModifier(value: value))
   }
 
   /// Applies iOS 26+ Liquid Glass (`glassEffect`) with an `.ultraThinMaterial` fallback on iOS 15–25.
-  func compatibleFloatingBar(cornerRadius: CGFloat = 24) -> some View {
+  public func compatibleFloatingBar(cornerRadius: CGFloat = 24) -> some View {
     modifier(CompatibleFloatingBarModifier(cornerRadius: cornerRadius))
   }
 }
 
 // MARK: - Private Modifier Implementations
+
+private struct CompatibleButtonStyleModifier: ViewModifier {
+  let style: CompatibleButtonStyle
+
+  func body(content: Content) -> some View {
+    if #available(iOS 26, *) {
+      switch style {
+      case .standard:
+        content.buttonStyle(.glass)
+      case .prominent:
+        content.buttonStyle(.glassProminent)
+      }
+    } else {
+      switch style {
+      case .standard:
+        content.buttonStyle(.bordered)
+      case .prominent:
+        content.buttonStyle(.borderedProminent)
+      }
+    }
+  }
+}
 
 private struct CompatibleSensoryFeedbackModifier<Trigger: Equatable>: ViewModifier {
   let style: CompatibleFeedbackStyle
