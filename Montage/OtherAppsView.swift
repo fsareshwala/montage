@@ -17,7 +17,7 @@ struct OtherAppsView: View {
       iconName: "forecash",
       appName: "Forecash",
       description:
-        "Plan bill pay dates, forecast your finances. Project your future balance so you can plan ahead.",
+        "Plan bill pay dates, forecast your finances. Project future balances so you can plan ahead.",
       appStoreURL: URL(string: "https://apps.apple.com/us/app/forecash-bill-planner/id6747775439")!
     ),
     DeveloperAppInfo(
