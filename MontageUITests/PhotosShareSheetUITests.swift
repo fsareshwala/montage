@@ -2,7 +2,7 @@ import Foundation
 import Photos
 import XCTest
 
-/// End-to-end UI tests exercising the real iOS Photos Share Sheet to ensure Merge Videos's
+/// End-to-end UI tests exercising the real iOS Photos Share Sheet to ensure Montage's
 /// Share Extension remains visible for multi-video selections and launches cleanly.
 ///
 /// Regression guard: iOS `sharingd` hides Share Extensions whose `NSExtensionActivationRule`
@@ -14,13 +14,13 @@ final class PhotosShareSheetUITests: XCTestCase {
     continueAfterFailure = false
   }
 
-  func testMergeVideosAppearsInPhotosShareSheetAndLoadsSelectedVideos() async throws {
-    // 1. Launch Merge Videos first so iOS installs and registers the host app and ShareExtension.
+  func testMontageAppearsInPhotosShareSheetAndLoadsSelectedVideos() async throws {
+    // 1. Launch Montage first so iOS installs and registers the host app and ShareExtension.
     let hostApp = XCUIApplication()
     hostApp.launch()
     XCTAssertTrue(
-      hostApp.navigationBars["Merge Videos"].waitForExistence(timeout: 5),
-      "Merge Videos host app should launch before opening Photos."
+      hostApp.navigationBars["Montage"].waitForExistence(timeout: 5),
+      "Montage host app should launch before opening Photos."
     )
 
     // 2. Ensure the simulator's Photos library contains at least 2 videos.
@@ -82,20 +82,20 @@ final class PhotosShareSheetUITests: XCTestCase {
     XCTAssertTrue(shareButton.waitForExistence(timeout: 5), "Photos Share button should exist.")
     shareButton.tap()
 
-    // 6. Verify 'Merge Videos' appears in the Share Sheet (either directly or under 'More').
-    let mergeVideosInShareSheet = findMergeVideosInShareSheet(in: photos)
+    // 6. Verify 'Montage' appears in the Share Sheet (either directly or under 'More').
+    let montageInShareSheet = findMontageInShareSheet(in: photos)
     XCTAssertNotNil(
-      mergeVideosInShareSheet,
-      "Merge Videos must appear in the iOS Photos Share Sheet when 2 videos are selected."
+      montageInShareSheet,
+      "Montage must appear in the iOS Photos Share Sheet when 2 videos are selected."
     )
 
-    // 7. Tap 'Merge Videos' and verify the Share Extension UI loads both clips.
-    mergeVideosInShareSheet?.tap()
+    // 7. Tap 'Montage' and verify the Share Extension UI loads both clips.
+    montageInShareSheet?.tap()
 
-    let mergeTitle = photos.navigationBars["Merge Videos"].firstMatch
+    let mergeTitle = photos.navigationBars["Montage"].firstMatch
     XCTAssertTrue(
       mergeTitle.waitForExistence(timeout: 12),
-      "Merge Videos Share Extension should present the 'Merge Videos' view."
+      "Montage Share Extension should present the 'Montage' view."
     )
 
     let dragHeader = photos.staticTexts["Drag to Reorder"].firstMatch
@@ -121,13 +121,13 @@ final class PhotosShareSheetUITests: XCTestCase {
     let cancelButton = mergeTitle.buttons["Cancel"].firstMatch
     XCTAssertTrue(
       cancelButton.waitForExistence(timeout: 3),
-      "'Merge Videos' navigation bar should contain a 'Cancel' button."
+      "'Montage' navigation bar should contain a 'Cancel' button."
     )
     cancelButton.tap()
 
     XCTAssertTrue(
       mergeTitle.waitForNonExistence(timeout: 8),
-      "Tapping Cancel should dismiss the Merge Videos Share Extension."
+      "Tapping Cancel should dismiss the Montage Share Extension."
     )
   }
 
@@ -144,15 +144,15 @@ final class PhotosShareSheetUITests: XCTestCase {
     }
   }
 
-  /// Searches the iOS Share Sheet apps row (and the 'More' apps list if needed) for 'Merge Videos'.
-  private func findMergeVideosInShareSheet(in photos: XCUIApplication) -> XCUIElement? {
+  /// Searches the iOS Share Sheet apps row (and the 'More' apps list if needed) for 'Montage'.
+  private func findMontageInShareSheet(in photos: XCUIApplication) -> XCUIElement? {
     let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
     let candidates: [XCUIElement] = [
-      photos.cells["Merge Videos"].firstMatch,
-      photos.buttons["Merge Videos"].firstMatch,
-      photos.staticTexts["Merge Videos"].firstMatch,
-      springboard.cells["Merge Videos"].firstMatch,
-      springboard.buttons["Merge Videos"].firstMatch,
+      photos.cells["Montage"].firstMatch,
+      photos.buttons["Montage"].firstMatch,
+      photos.staticTexts["Montage"].firstMatch,
+      springboard.cells["Montage"].firstMatch,
+      springboard.buttons["Montage"].firstMatch,
     ]
 
     // Wait briefly for the Share Sheet apps row to populate.
@@ -164,7 +164,7 @@ final class PhotosShareSheetUITests: XCTestCase {
       RunLoop.current.run(until: Date().addingTimeInterval(0.25))
     }
 
-    // If Merge Videos is further right in the apps row, open 'More' to inspect all Share Extensions.
+    // If Montage is further right in the apps row, open 'More' to inspect all Share Extensions.
     let moreCandidates: [XCUIElement] = [
       photos.cells["More"].firstMatch,
       photos.buttons["More"].firstMatch,
@@ -201,7 +201,7 @@ final class PhotosShareSheetUITests: XCTestCase {
     }
 
     let needed = 2 - existingVideos.count
-    let tempDir = try TestVideoFixtureFactory.makeTempDirectory(named: "MergeVideosUITestFixtures")
+    let tempDir = try TestVideoFixtureFactory.makeTempDirectory(named: "MontageUITestFixtures")
     defer { try? FileManager.default.removeItem(at: tempDir) }
 
     for index in 0..<needed {

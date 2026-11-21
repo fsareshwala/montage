@@ -12,15 +12,15 @@ final class HostAppUITests: XCTestCase {
     app.launch()
 
     XCTAssertTrue(
-      app.navigationBars["Merge Videos"].waitForExistence(timeout: 5),
-      "Host app should display the 'Merge Videos' navigation bar."
+      app.navigationBars["Montage"].waitForExistence(timeout: 5),
+      "Host app should display the 'Montage' navigation bar."
     )
 
     // Status and Quick guide sections
     XCTAssertTrue(app.staticTexts["Status"].exists)
     XCTAssertTrue(app.staticTexts["How It Works"].exists)
     XCTAssertTrue(app.staticTexts["Select 2 or more clips in Photos"].exists)
-    XCTAssertTrue(app.staticTexts["Tap Share and pick Merge Videos"].exists)
+    XCTAssertTrue(app.staticTexts["Tap Share and pick Montage"].exists)
     XCTAssertTrue(app.staticTexts["Reorder and Merge into one video"].exists)
 
     // Transitions section
@@ -55,10 +55,10 @@ final class HostAppUITests: XCTestCase {
       "Tapping Privacy Policy should navigate to the Privacy Policy screen."
     )
     app.navigationBars.buttons.firstMatch.tap()
-    XCTAssertTrue(app.navigationBars["Merge Videos"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.navigationBars["Montage"].waitForExistence(timeout: 5))
 
     for expectedText in [
-      "Share Merge Videos",
+      "Share Montage",
       "Report a Bug",
       "Source Code",
       "This app is fully open source. You can read the code on GitHub.",
@@ -91,7 +91,7 @@ final class HostAppUITests: XCTestCase {
   func testTransitionAndAutoTrimControlsToggleAndPersistAcrossRelaunch() {
     let app = XCUIApplication()
     app.launch()
-    XCTAssertTrue(app.navigationBars["Merge Videos"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.navigationBars["Montage"].waitForExistence(timeout: 5))
 
     // Open Transition Style picker and select Cross Dissolve
     selectPickerOption("Cross Dissolve", from: "Transition Style", in: app)
@@ -119,7 +119,7 @@ final class HostAppUITests: XCTestCase {
     // Relaunch app and verify settings persisted via shared App Group UserDefaults
     app.terminate()
     app.launch()
-    XCTAssertTrue(app.navigationBars["Merge Videos"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.navigationBars["Montage"].waitForExistence(timeout: 5))
 
     let persistedTransitionPicker = pickerButton(titled: "Transition Style", in: app)
     scrollIntoView(persistedTransitionPicker, in: app)
