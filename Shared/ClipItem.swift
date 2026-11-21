@@ -40,10 +40,18 @@ public nonisolated struct ClipItem: Identifiable, Sendable {
     self.filename = filename
   }
 
-  /// Display dimensions after applying the video track's `preferredTransform`.
-  public var orientedSize: CGSize {
+  /// Display dimensions after applying a video track's `preferredTransform`.
+  public nonisolated static func orientedSize(
+    naturalSize: CGSize,
+    preferredTransform: CGAffineTransform
+  ) -> CGSize {
     let rect = CGRect(origin: .zero, size: naturalSize).applying(preferredTransform)
     return CGSize(width: abs(rect.width), height: abs(rect.height))
+  }
+
+  /// Display dimensions after applying the video track's `preferredTransform`.
+  public var orientedSize: CGSize {
+    Self.orientedSize(naturalSize: naturalSize, preferredTransform: preferredTransform)
   }
 
   /// Human-readable duration string (e.g. `0:24`, `1:05`, `1:02:15`).

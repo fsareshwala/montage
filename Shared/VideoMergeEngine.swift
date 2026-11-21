@@ -132,8 +132,7 @@ public actor VideoMergeEngine {
 
     // Match back to PHAssets when Photo Library access is granted so we can preserve
     // exact dates/locations and offer post-merge cleanup.
-    let authStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-    if authStatus == .authorized || authStatus == .limited {
+    if PHPhotoLibrary.authorizationStatus(for: .readWrite).allowsPhotoAccess {
       loadedClips = resolvePhotoAssets(for: loadedClips)
     }
 
@@ -251,8 +250,7 @@ public actor VideoMergeEngine {
   public func deleteSourceAssets(localIdentifiers: [String]) async throws -> Bool {
     guard !localIdentifiers.isEmpty else { return false }
 
-    let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-    guard status == .authorized || status == .limited else {
+    guard PHPhotoLibrary.authorizationStatus(for: .readWrite).allowsPhotoAccess else {
       return false
     }
 
@@ -331,6 +329,78 @@ public actor VideoMergeEngine {
     clips: [ClipItem],
     configuration: MergeConfiguration
   ) async throws -> PreparedComposition {
+    let trackInfos = try await loadTrackInfos(for: clips)
+
+    // Determine output canvas renderSize from the first clip's oriented dimensions.
+    let renderSize = evenRenderSize(for: trackInfos[0])
+    let frameDuration = bestFrameDuration(from: trackInfos)
+    let transforms = trackInfos.map { info in
+      Self.normalizedTransform(
+        naturalSize: info.naturalSize,
+        preferredTransform: info.preferredTransform,
+        renderSize: renderSize
+      )
+    }
+
+    let composition = AVMutableComposition()
+    let blackColor = CGColor(red: 0, green: 0, blue: 0, alpha: 1)
+
+    let (videoInstructions, audioInputParameters): (
+      [AVVideoCompositionInstruction], [AVMutableAudioMixInputParameters]
+    ) =
+      if configuration.transitionStyle == .none {
+        try await buildSequentialTracks(
+          in: composition,
+          trackInfos: trackInfos,
+          transforms: transforms,
+          blackColor: blackColor
+        )
+      } else {
+        try await buildTransitionTracks(
+          in: composition,
+          trackInfos: trackInfos,
+          transforms: transforms,
+          renderSize: renderSize,
+          blackColor: blackColor,
+          configuration: configuration
+        )
+      }
+
+    // Apply optional auto-trim to fixed intervals with a smooth 0.3s audio fade-out at the cut.
+    let trimResult = applyAutoTrim(
+      fullDuration: composition.duration,
+      configuration: configuration,
+      audioInputParameters: audioInputParameters
+    )
+    let needsAudioMix =
+      (configuration.transitionStyle != .none && !audioInputParameters.isEmpty)
+      || trimResult.appliedAudioFade
+
+    let videoComposition = compositionBuilder.makeVideoComposition(
+      renderSize: renderSize,
+      frameDuration: frameDuration,
+      instructions: videoInstructions
+    )
+
+    let audioMix: AVMutableAudioMix?
+    if needsAudioMix {
+      let mix = AVMutableAudioMix()
+      mix.inputParameters = audioInputParameters
+      audioMix = mix
+    } else {
+      audioMix = nil
+    }
+
+    return PreparedComposition(
+      composition: composition,
+      videoComposition: videoComposition,
+      audioMix: audioMix,
+      exportTimeRange: trimResult.exportTimeRange,
+      outputDuration: trimResult.outputDuration
+    )
+  }
+
+  private func loadTrackInfos(for clips: [ClipItem]) async throws -> [LoadedTrackInfo] {
     var trackInfos: [LoadedTrackInfo] = []
     trackInfos.reserveCapacity(clips.count)
 
@@ -338,8 +408,7 @@ public actor VideoMergeEngine {
       try Task.checkCancellation()
 
       let asset = AVURLAsset(url: clip.fileURL)
-      let videoTracks = try await asset.loadTracks(withMediaType: .video)
-      guard let videoTrack = videoTracks.first else {
+      guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
         throw VideoMergeError.unreadableVideo
       }
 
@@ -375,342 +444,319 @@ public actor VideoMergeEngine {
       )
     }
 
-    // Determine output canvas renderSize from the first clip's oriented dimensions.
-    let renderSize = evenRenderSize(for: trackInfos[0])
-    let frameDuration = bestFrameDuration(from: trackInfos)
-    let transforms = trackInfos.map { info in
-      Self.normalizedTransform(
-        naturalSize: info.naturalSize,
-        preferredTransform: info.preferredTransform,
-        renderSize: renderSize
-      )
-    }
+    return trackInfos
+  }
 
-    let composition = AVMutableComposition()
-    let blackColor = CGColor(red: 0, green: 0, blue: 0, alpha: 1)
-    var videoInstructions: [AVVideoCompositionInstruction] = []
-    var audioInputParameters: [AVMutableAudioMixInputParameters] = []
-
-    if configuration.transitionStyle == .none {
-      // Sequential single-lane append without overlap.
+  private func addTracks(
+    to composition: AVMutableComposition,
+    mediaType: AVMediaType,
+    count: Int
+  ) -> [AVMutableCompositionTrack] {
+    var tracks: [AVMutableCompositionTrack] = []
+    tracks.reserveCapacity(count)
+    for _ in 0..<count {
       guard
-        let compVideoTrack = composition.addMutableTrack(
-          withMediaType: .video,
+        let track = composition.addMutableTrack(
+          withMediaType: mediaType,
           preferredTrackID: kCMPersistentTrackID_Invalid
         )
       else {
-        throw VideoMergeError.compositionFailed("Unable to create video track.")
+        return []
       }
+      tracks.append(track)
+    }
+    return tracks
+  }
 
-      let hasAnyAudio = trackInfos.contains { $0.audioTrack != nil }
-      let compAudioTrack: AVMutableCompositionTrack? =
-        hasAnyAudio
-        ? composition.addMutableTrack(
-          withMediaType: .audio,
-          preferredTrackID: kCMPersistentTrackID_Invalid
-        )
-        : nil
+  private func insertClampedAudio(
+    from sourceAudio: AVAssetTrack?,
+    maxDuration: CMTime,
+    into destinationTrack: AVMutableCompositionTrack?,
+    at time: CMTime
+  ) async throws {
+    guard let sourceAudio, let destinationTrack else { return }
+    let audioRange = try await clampedAudioRange(for: sourceAudio, maxDuration: maxDuration)
+    try? destinationTrack.insertTimeRange(audioRange, of: sourceAudio, at: time)
+  }
 
-      var cursor = CMTime.zero
+  private func buildSequentialTracks(
+    in composition: AVMutableComposition,
+    trackInfos: [LoadedTrackInfo],
+    transforms: [CGAffineTransform],
+    blackColor: CGColor
+  ) async throws -> ([AVVideoCompositionInstruction], [AVMutableAudioMixInputParameters]) {
+    guard let compVideoTrack = addTracks(to: composition, mediaType: .video, count: 1).first else {
+      throw VideoMergeError.compositionFailed("Unable to create video track.")
+    }
 
-      for (index, info) in trackInfos.enumerated() {
-        let sourceRange = CMTimeRange(start: .zero, duration: info.duration)
-        try compVideoTrack.insertTimeRange(sourceRange, of: info.videoTrack, at: cursor)
+    let hasAnyAudio = trackInfos.contains { $0.audioTrack != nil }
+    let compAudioTrack =
+      hasAnyAudio ? addTracks(to: composition, mediaType: .audio, count: 1).first : nil
 
-        if let sourceAudio = info.audioTrack, let compAudioTrack {
-          let audioTimeRange = try await clampedAudioRange(
-            for: sourceAudio, maxDuration: info.duration)
-          try? compAudioTrack.insertTimeRange(audioTimeRange, of: sourceAudio, at: cursor)
-        }
+    var videoInstructions: [AVVideoCompositionInstruction] = []
+    videoInstructions.reserveCapacity(trackInfos.count)
+    var cursor = CMTime.zero
 
-        let layerInstruction = compositionBuilder.makeLayerInstruction(
-          track: compVideoTrack,
-          transform: transforms[index],
-          at: cursor
-        )
-        let instruction = compositionBuilder.makeVideoInstruction(
+    for (index, info) in trackInfos.enumerated() {
+      let sourceRange = CMTimeRange(start: .zero, duration: info.duration)
+      try compVideoTrack.insertTimeRange(sourceRange, of: info.videoTrack, at: cursor)
+      try await insertClampedAudio(
+        from: info.audioTrack,
+        maxDuration: info.duration,
+        into: compAudioTrack,
+        at: cursor
+      )
+
+      let layerInstruction = compositionBuilder.makeLayerInstruction(
+        track: compVideoTrack,
+        transform: transforms[index],
+        at: cursor
+      )
+      videoInstructions.append(
+        compositionBuilder.makeVideoInstruction(
           timeRange: CMTimeRange(start: cursor, duration: info.duration),
           backgroundColor: blackColor,
           layerInstructions: [layerInstruction]
         )
-        videoInstructions.append(instruction)
+      )
 
-        cursor = CMTimeAdd(cursor, info.duration)
-      }
+      cursor = CMTimeAdd(cursor, info.duration)
+    }
 
-      if let compAudioTrack {
-        let params = AVMutableAudioMixInputParameters(track: compAudioTrack)
-        audioInputParameters.append(params)
-      }
-    } else {
-      // Dual A/B video and audio lanes for overlapping transitions.
-      guard
-        let videoTrackA = composition.addMutableTrack(
-          withMediaType: .video,
-          preferredTrackID: kCMPersistentTrackID_Invalid
-        ),
-        let videoTrackB = composition.addMutableTrack(
-          withMediaType: .video,
-          preferredTrackID: kCMPersistentTrackID_Invalid
+    let audioInputParameters = compAudioTrack.map { [AVMutableAudioMixInputParameters(track: $0)] } ?? []
+    return (videoInstructions, audioInputParameters)
+  }
+
+  private func buildTransitionTracks(
+    in composition: AVMutableComposition,
+    trackInfos: [LoadedTrackInfo],
+    transforms: [CGAffineTransform],
+    renderSize: CGSize,
+    blackColor: CGColor,
+    configuration: MergeConfiguration
+  ) async throws -> ([AVVideoCompositionInstruction], [AVMutableAudioMixInputParameters]) {
+    let videoTracks = addTracks(to: composition, mediaType: .video, count: 2)
+    guard videoTracks.count == 2 else {
+      throw VideoMergeError.compositionFailed("Unable to create A/B video tracks.")
+    }
+
+    let hasAnyAudio = trackInfos.contains { $0.audioTrack != nil }
+    let audioTracks = hasAnyAudio ? addTracks(to: composition, mediaType: .audio, count: 2) : []
+    let audioInputParameters = audioTracks.map(AVMutableAudioMixInputParameters.init(track:))
+
+    // Compute clamped per-boundary transition durations.
+    let transitionDurations: [CMTime] = (0..<max(0, trackInfos.count - 1)).map { index in
+      let seconds = configuration.effectiveTransitionDuration(
+        between: trackInfos[index].duration.seconds,
+        and: trackInfos[index + 1].duration.seconds
+      )
+      return CMTime(seconds: seconds, preferredTimescale: 600)
+    }
+
+    // Compute timeline start/end for every clip and insert onto alternating A/B lanes.
+    var clipStarts: [CMTime] = []
+    var clipEnds: [CMTime] = []
+    clipStarts.reserveCapacity(trackInfos.count)
+    clipEnds.reserveCapacity(trackInfos.count)
+
+    for (index, info) in trackInfos.enumerated() {
+      let start = index == 0 ? .zero : CMTimeSubtract(clipEnds[index - 1], transitionDurations[index - 1])
+      let end = CMTimeAdd(start, info.duration)
+      clipStarts.append(start)
+      clipEnds.append(end)
+
+      let lane = index % 2
+      let sourceRange = CMTimeRange(start: .zero, duration: info.duration)
+      try videoTracks[lane].insertTimeRange(sourceRange, of: info.videoTrack, at: start)
+      try await insertClampedAudio(
+        from: info.audioTrack,
+        maxDuration: info.duration,
+        into: audioTracks.count == 2 ? audioTracks[lane] : nil,
+        at: start
+      )
+    }
+
+    // Build contiguous pass-through and transition video instructions + audio crossfades.
+    var videoInstructions: [AVVideoCompositionInstruction] = []
+    for index in 0..<trackInfos.count {
+      let lane = index % 2
+      let passStart = (index == 0) ? .zero : clipEnds[index - 1]
+      let passEnd = (index == trackInfos.count - 1) ? clipEnds[index] : clipStarts[index + 1]
+
+      if CMTimeCompare(passEnd, passStart) > 0 {
+        let passRange = CMTimeRange(start: passStart, end: passEnd)
+        let layer = compositionBuilder.makeLayerInstruction(
+          track: videoTracks[lane],
+          transform: transforms[index],
+          at: passStart,
+          opacity: 1.0
         )
-      else {
-        throw VideoMergeError.compositionFailed("Unable to create A/B video tracks.")
-      }
-      let videoTracks = [videoTrackA, videoTrackB]
-
-      let hasAnyAudio = trackInfos.contains { $0.audioTrack != nil }
-      var audioTracks: [AVMutableCompositionTrack] = []
-      if hasAnyAudio,
-        let audioTrackA = composition.addMutableTrack(
-          withMediaType: .audio,
-          preferredTrackID: kCMPersistentTrackID_Invalid
-        ),
-        let audioTrackB = composition.addMutableTrack(
-          withMediaType: .audio,
-          preferredTrackID: kCMPersistentTrackID_Invalid
-        )
-      {
-        audioTracks = [audioTrackA, audioTrackB]
-        audioInputParameters = [
-          AVMutableAudioMixInputParameters(track: audioTrackA),
-          AVMutableAudioMixInputParameters(track: audioTrackB),
-        ]
-      }
-
-      // Compute clamped per-boundary transition durations.
-      var transitionDurations: [CMTime] = []
-      transitionDurations.reserveCapacity(max(0, trackInfos.count - 1))
-      for index in 0..<(trackInfos.count - 1) {
-        let seconds = configuration.effectiveTransitionDuration(
-          between: trackInfos[index].duration.seconds,
-          and: trackInfos[index + 1].duration.seconds
-        )
-        transitionDurations.append(CMTime(seconds: seconds, preferredTimescale: 600))
-      }
-
-      // Compute timeline start/end for every clip.
-      var clipStarts: [CMTime] = []
-      var clipEnds: [CMTime] = []
-      clipStarts.reserveCapacity(trackInfos.count)
-      clipEnds.reserveCapacity(trackInfos.count)
-
-      for index in 0..<trackInfos.count {
-        let start: CMTime
-        if index == 0 {
-          start = .zero
-        } else {
-          start = CMTimeSubtract(clipEnds[index - 1], transitionDurations[index - 1])
-        }
-        let end = CMTimeAdd(start, trackInfos[index].duration)
-        clipStarts.append(start)
-        clipEnds.append(end)
-
-        let lane = index % 2
-        let sourceRange = CMTimeRange(start: .zero, duration: trackInfos[index].duration)
-        try videoTracks[lane].insertTimeRange(
-          sourceRange, of: trackInfos[index].videoTrack, at: start)
-
-        if let sourceAudio = trackInfos[index].audioTrack, audioTracks.count == 2 {
-          let audioRange = try await clampedAudioRange(
-            for: sourceAudio,
-            maxDuration: trackInfos[index].duration
-          )
-          try? audioTracks[lane].insertTimeRange(audioRange, of: sourceAudio, at: start)
-        }
-      }
-
-      // Build contiguous pass-through and transition video instructions + audio crossfades.
-      for index in 0..<trackInfos.count {
-        let lane = index % 2
-        let passStart = (index == 0) ? .zero : clipEnds[index - 1]
-        let passEnd = (index == trackInfos.count - 1) ? clipEnds[index] : clipStarts[index + 1]
-
-        if CMTimeCompare(passEnd, passStart) > 0 {
-          let passRange = CMTimeRange(start: passStart, end: passEnd)
-          let layer = compositionBuilder.makeLayerInstruction(
-            track: videoTracks[lane],
-            transform: transforms[index],
-            at: passStart,
-            opacity: 1.0
-          )
-          let instruction = compositionBuilder.makeVideoInstruction(
+        videoInstructions.append(
+          compositionBuilder.makeVideoInstruction(
             timeRange: passRange,
             backgroundColor: blackColor,
             layerInstructions: [layer]
           )
-          videoInstructions.append(instruction)
+        )
+      }
+
+      // Reset audio volume at the start of a clip if no incoming ramp handled it.
+      if audioInputParameters.count == 2 {
+        if index == 0 {
+          audioInputParameters[0].setVolume(1.0, at: .zero)
+        } else if CMTimeCompare(transitionDurations[index - 1], .zero) <= 0 {
+          audioInputParameters[lane].setVolume(1.0, at: clipStarts[index])
         }
+      }
 
-        // Reset audio volume at the start of a clip if no incoming ramp handled it.
-        if audioInputParameters.count == 2 {
-          if index == 0 {
-            audioInputParameters[0].setVolume(1.0, at: .zero)
-          } else if CMTimeCompare(transitionDurations[index - 1], .zero) <= 0 {
-            audioInputParameters[lane].setVolume(1.0, at: clipStarts[index])
-          }
-        }
+      // Transition between clip `index` and clip `index + 1`.
+      guard index < trackInfos.count - 1 else { continue }
+      let transDuration = transitionDurations[index]
+      guard CMTimeCompare(transDuration, .zero) > 0 else { continue }
 
-        // Transition between clip `index` and clip `index + 1`.
-        if index < trackInfos.count - 1 {
-          let transDuration = transitionDurations[index]
-          guard CMTimeCompare(transDuration, .zero) > 0 else { continue }
+      let transRange = CMTimeRange(start: clipStarts[index + 1], duration: transDuration)
+      let nextLane = (index + 1) % 2
+      videoInstructions.append(
+        contentsOf: makeTransitionInstructions(
+          style: configuration.transitionStyle,
+          fromTrack: videoTracks[lane],
+          toTrack: videoTracks[nextLane],
+          fromTransform: transforms[index],
+          toTransform: transforms[index + 1],
+          renderSize: renderSize,
+          timeRange: transRange,
+          blackColor: blackColor
+        )
+      )
 
-          let transRange = CMTimeRange(start: clipStarts[index + 1], duration: transDuration)
-          let nextLane = (index + 1) % 2
-          let fromTrack = videoTracks[lane]
-          let toTrack = videoTracks[nextLane]
-          let fromTransform = transforms[index]
-          let toTransform = transforms[index + 1]
-
-          switch configuration.transitionStyle {
-          case .none:
-            break
-
-          case .crossDissolve:
-            let fromLayer = compositionBuilder.makeLayerInstruction(
-              track: fromTrack,
-              transform: fromTransform,
-              at: transRange.start,
-              opacityRamp: (1.0, 0.0, transRange)
-            )
-            let toLayer = compositionBuilder.makeLayerInstruction(
-              track: toTrack,
-              transform: toTransform,
-              at: transRange.start,
-              opacityRamp: (0.0, 1.0, transRange)
-            )
-            let instruction = compositionBuilder.makeVideoInstruction(
-              timeRange: transRange,
-              backgroundColor: blackColor,
-              layerInstructions: [fromLayer, toLayer]
-            )
-            videoInstructions.append(instruction)
-
-          case .dipToBlack:
-            let halfDuration = CMTimeMultiplyByFloat64(transDuration, multiplier: 0.5)
-            let midTime = CMTimeAdd(transRange.start, halfDuration)
-            let firstHalf = CMTimeRange(start: transRange.start, end: midTime)
-            let secondHalf = CMTimeRange(start: midTime, end: transRange.end)
-
-            if CMTimeCompare(firstHalf.duration, .zero) > 0 {
-              let fromLayer = compositionBuilder.makeLayerInstruction(
-                track: fromTrack,
-                transform: fromTransform,
-                at: firstHalf.start,
-                opacityRamp: (1.0, 0.0, firstHalf)
-              )
-              let fadeOutInstruction = compositionBuilder.makeVideoInstruction(
-                timeRange: firstHalf,
-                backgroundColor: blackColor,
-                layerInstructions: [fromLayer]
-              )
-              videoInstructions.append(fadeOutInstruction)
-            }
-
-            if CMTimeCompare(secondHalf.duration, .zero) > 0 {
-              let toLayer = compositionBuilder.makeLayerInstruction(
-                track: toTrack,
-                transform: toTransform,
-                at: secondHalf.start,
-                opacityRamp: (0.0, 1.0, secondHalf)
-              )
-              let fadeInInstruction = compositionBuilder.makeVideoInstruction(
-                timeRange: secondHalf,
-                backgroundColor: blackColor,
-                layerInstructions: [toLayer]
-              )
-              videoInstructions.append(fadeInInstruction)
-            }
-
-          case .slide:
-            let fromEndTransform = fromTransform.concatenating(
-              CGAffineTransform(translationX: -renderSize.width, y: 0)
-            )
-            let toStartTransform = toTransform.concatenating(
-              CGAffineTransform(translationX: renderSize.width, y: 0)
-            )
-
-            let fromLayer = compositionBuilder.makeLayerInstruction(
-              track: fromTrack,
-              transformRamp: (fromTransform, fromEndTransform, transRange)
-            )
-            let toLayer = compositionBuilder.makeLayerInstruction(
-              track: toTrack,
-              transformRamp: (toStartTransform, toTransform, transRange)
-            )
-            let instruction = compositionBuilder.makeVideoInstruction(
-              timeRange: transRange,
-              backgroundColor: blackColor,
-              layerInstructions: [toLayer, fromLayer]
-            )
-            videoInstructions.append(instruction)
-          }
-
-          // Audio crossfade across the transition window.
-          if audioInputParameters.count == 2 {
-            audioInputParameters[lane].setVolumeRamp(
-              fromStartVolume: 1.0,
-              toEndVolume: 0.0,
-              timeRange: transRange
-            )
-            audioInputParameters[nextLane].setVolumeRamp(
-              fromStartVolume: 0.0,
-              toEndVolume: 1.0,
-              timeRange: transRange
-            )
-          }
-        }
+      // Audio crossfade across the transition window.
+      if audioInputParameters.count == 2 {
+        audioInputParameters[lane].setVolumeRamp(
+          fromStartVolume: 1.0,
+          toEndVolume: 0.0,
+          timeRange: transRange
+        )
+        audioInputParameters[nextLane].setVolumeRamp(
+          fromStartVolume: 0.0,
+          toEndVolume: 1.0,
+          timeRange: transRange
+        )
       }
     }
 
-    // Apply optional auto-trim to fixed intervals with a smooth 0.3s audio fade-out at the cut.
-    let fullDuration = composition.duration
-    var exportTimeRange: CMTimeRange?
-    var finalOutputDuration = fullDuration.seconds
-    var needsAudioMix = configuration.transitionStyle != .none && !audioInputParameters.isEmpty
+    return (videoInstructions, audioInputParameters)
+  }
 
-    if configuration.autoTrimEnabled {
-      let interval = configuration.autoTrimInterval.seconds
-      if fullDuration.seconds >= interval {
-        let targetSeconds = floor(fullDuration.seconds / interval) * interval
-        if targetSeconds > 0, targetSeconds < fullDuration.seconds - 0.01 {
-          let targetTime = CMTime(seconds: targetSeconds, preferredTimescale: 600)
-          exportTimeRange = CMTimeRange(start: .zero, duration: targetTime)
-          finalOutputDuration = targetSeconds
+  private func makeTransitionInstructions(
+    style: TransitionStyle,
+    fromTrack: AVMutableCompositionTrack,
+    toTrack: AVMutableCompositionTrack,
+    fromTransform: CGAffineTransform,
+    toTransform: CGAffineTransform,
+    renderSize: CGSize,
+    timeRange: CMTimeRange,
+    blackColor: CGColor
+  ) -> [AVVideoCompositionInstruction] {
+    switch style {
+    case .none:
+      return []
 
-          if !audioInputParameters.isEmpty {
-            let fadeLength = min(Self.autoTrimFadeOutSeconds, targetSeconds)
-            let fadeStart = CMTime(seconds: targetSeconds - fadeLength, preferredTimescale: 600)
-            let fadeRange = CMTimeRange(start: fadeStart, end: targetTime)
-            for params in audioInputParameters {
-              params.setVolumeRamp(fromStartVolume: 1.0, toEndVolume: 0.0, timeRange: fadeRange)
-            }
-            needsAudioMix = true
-          }
-        }
+    case .crossDissolve:
+      let fromLayer = compositionBuilder.makeLayerInstruction(
+        track: fromTrack,
+        transform: fromTransform,
+        at: timeRange.start,
+        opacityRamp: (1.0, 0.0, timeRange)
+      )
+      let toLayer = compositionBuilder.makeLayerInstruction(
+        track: toTrack,
+        transform: toTransform,
+        at: timeRange.start,
+        opacityRamp: (0.0, 1.0, timeRange)
+      )
+      return [
+        compositionBuilder.makeVideoInstruction(
+          timeRange: timeRange,
+          backgroundColor: blackColor,
+          layerInstructions: [fromLayer, toLayer]
+        )
+      ]
+
+    case .dipToBlack:
+      let halfDuration = CMTimeMultiplyByFloat64(timeRange.duration, multiplier: 0.5)
+      let midTime = CMTimeAdd(timeRange.start, halfDuration)
+      let halves: [(AVMutableCompositionTrack, CGAffineTransform, Float, Float, CMTimeRange)] = [
+        (fromTrack, fromTransform, 1.0, 0.0, CMTimeRange(start: timeRange.start, end: midTime)),
+        (toTrack, toTransform, 0.0, 1.0, CMTimeRange(start: midTime, end: timeRange.end)),
+      ]
+      return halves.compactMap { track, transform, startOpacity, endOpacity, range in
+        guard CMTimeCompare(range.duration, .zero) > 0 else { return nil }
+        let layer = compositionBuilder.makeLayerInstruction(
+          track: track,
+          transform: transform,
+          at: range.start,
+          opacityRamp: (startOpacity, endOpacity, range)
+        )
+        return compositionBuilder.makeVideoInstruction(
+          timeRange: range,
+          backgroundColor: blackColor,
+          layerInstructions: [layer]
+        )
       }
+
+    case .slide:
+      let fromEndTransform = fromTransform.concatenating(
+        CGAffineTransform(translationX: -renderSize.width, y: 0)
+      )
+      let toStartTransform = toTransform.concatenating(
+        CGAffineTransform(translationX: renderSize.width, y: 0)
+      )
+      let fromLayer = compositionBuilder.makeLayerInstruction(
+        track: fromTrack,
+        transformRamp: (fromTransform, fromEndTransform, timeRange)
+      )
+      let toLayer = compositionBuilder.makeLayerInstruction(
+        track: toTrack,
+        transformRamp: (toStartTransform, toTransform, timeRange)
+      )
+      return [
+        compositionBuilder.makeVideoInstruction(
+          timeRange: timeRange,
+          backgroundColor: blackColor,
+          layerInstructions: [toLayer, fromLayer]
+        )
+      ]
+    }
+  }
+
+  private func applyAutoTrim(
+    fullDuration: CMTime,
+    configuration: MergeConfiguration,
+    audioInputParameters: [AVMutableAudioMixInputParameters]
+  ) -> (exportTimeRange: CMTimeRange?, outputDuration: TimeInterval, appliedAudioFade: Bool) {
+    guard
+      let targetSeconds = configuration.trimmedDuration(for: fullDuration.seconds),
+      targetSeconds > 0,
+      targetSeconds < fullDuration.seconds - 0.01
+    else {
+      return (nil, fullDuration.seconds, false)
     }
 
-    let videoComposition = compositionBuilder.makeVideoComposition(
-      renderSize: renderSize,
-      frameDuration: frameDuration,
-      instructions: videoInstructions
-    )
+    let targetTime = CMTime(seconds: targetSeconds, preferredTimescale: 600)
+    let exportTimeRange = CMTimeRange(start: .zero, duration: targetTime)
+    var appliedAudioFade = false
 
-    var audioMix: AVMutableAudioMix?
-    if needsAudioMix {
-      let mix = AVMutableAudioMix()
-      mix.inputParameters = audioInputParameters
-      audioMix = mix
+    if !audioInputParameters.isEmpty {
+      let fadeLength = min(Self.autoTrimFadeOutSeconds, targetSeconds)
+      let fadeStart = CMTime(seconds: targetSeconds - fadeLength, preferredTimescale: 600)
+      let fadeRange = CMTimeRange(start: fadeStart, end: targetTime)
+      for params in audioInputParameters {
+        params.setVolumeRamp(fromStartVolume: 1.0, toEndVolume: 0.0, timeRange: fadeRange)
+      }
+      appliedAudioFade = true
     }
 
-    return PreparedComposition(
-      composition: composition,
-      videoComposition: videoComposition,
-      audioMix: audioMix,
-      exportTimeRange: exportTimeRange,
-      outputDuration: finalOutputDuration
-    )
+    return (exportTimeRange, targetSeconds, appliedAudioFade)
   }
 
   // MARK: - Exporting with Memory Safety
@@ -760,17 +806,13 @@ public actor VideoMergeEngine {
 
   private func ensurePhotoLibraryWriteAccess() async -> Bool {
     let current = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-    switch current {
-    case .authorized, .limited:
+    if current.allowsPhotoAccess {
       return true
-    case .notDetermined:
-      let updated = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
-      return updated == .authorized || updated == .limited
-    case .denied, .restricted:
-      return false
-    @unknown default:
+    }
+    guard current == .notDetermined else {
       return false
     }
+    return await PHPhotoLibrary.requestAuthorization(for: .readWrite).allowsPhotoAccess
   }
 
   private func saveVideoToPhotoLibrary(
@@ -1109,18 +1151,18 @@ public actor VideoMergeEngine {
   // MARK: - Composition Utility Helpers
 
   private func evenRenderSize(for firstTrack: LoadedTrackInfo) -> CGSize {
-    let transformed = CGRect(origin: .zero, size: firstTrack.naturalSize)
-      .applying(firstTrack.preferredTransform)
-    let rawWidth = abs(transformed.width)
-    let rawHeight = abs(transformed.height)
+    let oriented = ClipItem.orientedSize(
+      naturalSize: firstTrack.naturalSize,
+      preferredTransform: firstTrack.preferredTransform
+    )
 
-    guard rawWidth >= 2, rawHeight >= 2 else {
+    guard oriented.width >= 2, oriented.height >= 2 else {
       return CGSize(width: 1080, height: 1920)
     }
 
     // Video encoders require even pixel dimensions.
-    let evenWidth = max(2, Int(rawWidth.rounded()) & ~1)
-    let evenHeight = max(2, Int(rawHeight.rounded()) & ~1)
+    let evenWidth = max(2, Int(oriented.width.rounded()) & ~1)
+    let evenHeight = max(2, Int(oriented.height.rounded()) & ~1)
     return CGSize(width: evenWidth, height: evenHeight)
   }
 
@@ -1148,3 +1190,10 @@ public actor VideoMergeEngine {
     return CMTimeRange(start: .zero, duration: effectiveDuration)
   }
 }
+
+private extension PHAuthorizationStatus {
+  nonisolated var allowsPhotoAccess: Bool {
+    self == .authorized || self == .limited
+  }
+}
+
