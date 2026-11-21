@@ -428,7 +428,6 @@ private struct SettingPickerRow<Option: SettingOption>: View {
         )
       }
     }
-    .frame(minHeight: 44)
   }
 
   @ViewBuilder
@@ -457,16 +456,14 @@ private struct SettingToggleRow: View {
         color: color
       )
 
-      VStack(alignment: .leading, spacing: 10) {
-        Toggle(title, isOn: $isOn)
-
+      Toggle(isOn: $isOn) {
+        Text(title)
         Text(description)
           .font(.footnote)
           .foregroundStyle(.secondary)
           .fixedSize(horizontal: false, vertical: true)
       }
     }
-    .padding(.vertical, 4)
   }
 }
 
