@@ -87,7 +87,7 @@ final class HostAppUITests: XCTestCase {
     crossDissolveOption.tap()
 
     // Selecting an animated transition should reveal the duration segmented control
-    let longDurationButton = app.buttons["0.8s"]
+    let longDurationButton = app.buttons["0.7s"]
     XCTAssertTrue(
       longDurationButton.waitForExistence(timeout: 3),
       "Transition Duration segmented picker should appear when an animated transition is selected."
@@ -133,7 +133,7 @@ final class HostAppUITests: XCTestCase {
       persistedTransitionPicker.label.contains("Cross Dissolve"),
       "Transition Style should persist as Cross Dissolve after relaunch, got: \(persistedTransitionPicker.label)"
     )
-    XCTAssertTrue(app.buttons["0.8s"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["0.7s"].waitForExistence(timeout: 3))
 
     // Restore clean defaults (Instant Cut + Auto-Trim OFF)
     persistedTransitionPicker.tap()

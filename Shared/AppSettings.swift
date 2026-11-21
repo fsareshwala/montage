@@ -28,7 +28,7 @@ public nonisolated enum TransitionStyle: String, CaseIterable, Identifiable, Sen
 public nonisolated enum TransitionDuration: Double, CaseIterable, Identifiable, Sendable {
   case short = 0.3
   case medium = 0.5
-  case long = 0.8
+  case long = 0.7
 
   public var id: Double { rawValue }
 
@@ -39,7 +39,7 @@ public nonisolated enum TransitionDuration: Double, CaseIterable, Identifiable, 
     case .medium:
       "0.5s"
     case .long:
-      "0.8s"
+      "0.7s"
     }
   }
 }

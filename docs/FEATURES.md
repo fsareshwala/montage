@@ -31,7 +31,7 @@ agents must keep this file synchronized with code changes.
 ### 3. Configurable Clip Transitions (Host App Setting)
 
 - **Behavior:** `Picker` in Host App (`None` [Default], `Cross Dissolve`, `Dip to Black`, `Slide`)
-  plus transition duration (`0.3s`, `0.5s` [Default], `0.8s`) using A/B `AVMutableCompositionTrack`
+  plus transition duration (`0.3s`, `0.5s` [Default], `0.7s`) using A/B `AVMutableCompositionTrack`
   lanes and audio crossfades.
 - **Provenance & Rationale:** Allows subtle polish between outing activities while defaulting to
   instant cuts for fastest export speed.
@@ -71,6 +71,8 @@ agents must keep this file synchronized with code changes.
 _(Agents: Append new entries below in reverse-chronological order whenever features are added or
 modified.)_
 
+- **v1.0 (Transition Duration Tuning):** Updated the `long` transition duration option from `0.8s` to
+  `0.7s` in `Shared/AppSettings.swift` along with unit and UI tests.
 - **v1.0 (Initial Build):** Scaffolded **Clip Combine** host settings app
   (`com.sareshwala.faraaz.clipcombine`), Share Extension
   (`com.sareshwala.faraaz.clipcombine.share`), App Group shared storage
