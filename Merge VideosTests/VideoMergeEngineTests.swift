@@ -3,18 +3,14 @@ import CoreGraphics
 import CoreLocation
 import Foundation
 import Testing
-import UniformTypeIdentifiers
+
 @testable import Merge_Videos
 
 @Suite("VideoMergeEngine")
 struct VideoMergeEngineTests {
 
   private func makeTempDirectory() throws -> URL {
-    let dir = FileManager.default.temporaryDirectory
-      .appendingPathComponent("MergeVideosEngineTests", isDirectory: true)
-      .appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-    return dir
+    try TestVideoFixtureFactory.makeTempDirectory(named: "MergeVideosEngineTests")
   }
 
   private func makeClipItem(
@@ -50,7 +46,8 @@ struct VideoMergeEngineTests {
     #expect(abs(resultRect.height - 1080) < 0.5)
   }
 
-  @Test("normalizedTransform normalizes 90-degree rotated iPhone portrait video onto portrait canvas")
+  @Test(
+    "normalizedTransform normalizes 90-degree rotated iPhone portrait video onto portrait canvas")
   func normalizedTransformPortraitRotation() {
     let natural = CGSize(width: 1920, height: 1080)
     let preferred = CGAffineTransform(rotationAngle: .pi / 2)
@@ -184,17 +181,10 @@ struct VideoMergeEngineTests {
 
     let engine = VideoMergeEngine()
     let clips = [makeClipItem(from: url1, duration: 2.0), makeClipItem(from: url2, duration: 2.0)]
-    let config = MergeConfiguration(
-      transitionStyle: .none,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
-    )
+    let config = MergeConfiguration()
 
     let outputURL = dir.appendingPathComponent("merged_none.mov")
-    let phaseRecorder = PhaseRecorder()
+    let phaseRecorder = LockedRecorder<MergePhase>()
 
     let reportedDuration = try await engine.mergeToFile(
       clips: clips,
@@ -246,14 +236,7 @@ struct VideoMergeEngineTests {
 
     let engine = VideoMergeEngine()
     let clips = [makeClipItem(from: url1, duration: 2.0), makeClipItem(from: url2, duration: 2.0)]
-    let config = MergeConfiguration(
-      transitionStyle: style,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
-    )
+    let config = MergeConfiguration(transitionStyle: style)
 
     let outputURL = dir.appendingPathComponent("merged_\(style.rawValue).mov")
     let reportedDuration = try await engine.mergeToFile(
@@ -293,14 +276,7 @@ struct VideoMergeEngineTests {
       makeClipItem(from: url2, duration: 2.0),
       makeClipItem(from: url3, duration: 2.0),
     ]
-    let config = MergeConfiguration(
-      transitionStyle: .crossDissolve,
-      transitionDuration: 0.5,
-      preserveMetadata: false,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
-    )
+    let config = MergeConfiguration(transitionStyle: .crossDissolve, preserveMetadata: false)
 
     let outputURL = dir.appendingPathComponent("merged_3clips.mov")
     let reportedDuration = try await engine.mergeToFile(
@@ -347,14 +323,7 @@ struct VideoMergeEngineTests {
       transform: .identity
     )
 
-    let config = MergeConfiguration(
-      transitionStyle: .none,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
-    )
+    let config = MergeConfiguration()
     let engine = VideoMergeEngine()
 
     // Portrait first -> portrait output (90x160)
@@ -393,14 +362,7 @@ struct VideoMergeEngineTests {
     let dir = try makeTempDirectory()
     defer { try? FileManager.default.removeItem(at: dir) }
 
-    let config = MergeConfiguration(
-      transitionStyle: .none,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: true,
-      autoTrimInterval: .thirtySeconds
-    )
+    let config = MergeConfiguration(autoTrimEnabled: true, autoTrimInterval: .thirtySeconds)
     let engine = VideoMergeEngine()
 
     // Case 1: 16s + 16s = 32s -> trimmed to 30.0s (with audio fade-out)
@@ -434,7 +396,9 @@ struct VideoMergeEngineTests {
     )
     let untouchedURL = dir.appendingPathComponent("untouched_4s.mov")
     let untouchedReported = try await engine.mergeToFile(
-      clips: [makeClipItem(from: short1, duration: 2.0), makeClipItem(from: short2, duration: 2.0)],
+      clips: [
+        makeClipItem(from: short1, duration: 2.0), makeClipItem(from: short2, duration: 2.0),
+      ],
       configuration: config,
       outputURL: untouchedURL
     )
@@ -449,14 +413,7 @@ struct VideoMergeEngineTests {
     defer { try? FileManager.default.removeItem(at: dir) }
 
     let engine = VideoMergeEngine()
-    let config = MergeConfiguration(
-      transitionStyle: .none,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
-    )
+    let config = MergeConfiguration()
     let outputURL = dir.appendingPathComponent("out.mov")
 
     // 0 clips -> insufficientClips
@@ -520,27 +477,8 @@ struct VideoMergeEngineTests {
       color: .blue
     )
 
-    let provider1 = NSItemProvider()
-    provider1.suggestedName = "IMG_0001"
-    provider1.registerFileRepresentation(
-      forTypeIdentifier: UTType.movie.identifier,
-      fileOptions: [],
-      visibility: .all
-    ) { completion in
-      completion(url1, false, nil)
-      return nil
-    }
-
-    let provider2 = NSItemProvider()
-    provider2.suggestedName = "IMG_0002"
-    provider2.registerFileRepresentation(
-      forTypeIdentifier: UTType.movie.identifier,
-      fileOptions: [],
-      visibility: .all
-    ) { completion in
-      completion(url2, false, nil)
-      return nil
-    }
+    let provider1 = makeMovieItemProvider(url: url1, suggestedName: "IMG_0001")
+    let provider2 = makeMovieItemProvider(url: url2, suggestedName: "IMG_0002")
 
     // Non-video attachment should be ignored cleanly.
     let textProvider = NSItemProvider(object: "ignored caption" as NSString)
@@ -549,10 +487,10 @@ struct VideoMergeEngineTests {
     let item = NSExtensionItem()
     item.attachments = [provider1, textProvider, provider2]
 
-    let progressRecorder = ProgressRecorder()
+    let progressRecorder = LockedRecorder<(Int, Int)>()
     let engine = VideoMergeEngine()
     let loaded = try await engine.loadClips(from: [item]) { current, total in
-      progressRecorder.record(current: current, total: total)
+      progressRecorder.record((current, total))
     }
 
     #expect(loaded.count == 2)
@@ -598,28 +536,16 @@ struct VideoMergeEngineTests {
     let emptyLoaded = try await engine.loadClips(from: [emptyItem])
     #expect(emptyLoaded.isEmpty)
 
-    let url1 = try await TestVideoFixtureFactory.makeVideo(in: dir, filename: "a.mov", duration: 1.0)
-    let url2 = try await TestVideoFixtureFactory.makeVideo(in: dir, filename: "b.mov", duration: 1.5)
+    let url1 = try await TestVideoFixtureFactory.makeVideo(
+      in: dir, filename: "a.mov", duration: 1.0)
+    let url2 = try await TestVideoFixtureFactory.makeVideo(
+      in: dir, filename: "b.mov", duration: 1.5)
 
     let item1 = NSExtensionItem()
-    let p1 = NSItemProvider()
-    p1.registerFileRepresentation(
-      forTypeIdentifier: UTType.movie.identifier, fileOptions: [], visibility: .all
-    ) { completion in
-      completion(url1, false, nil)
-      return nil
-    }
-    item1.attachments = [p1]
+    item1.attachments = [makeMovieItemProvider(url: url1)]
 
     let item2 = NSExtensionItem()
-    let p2 = NSItemProvider()
-    p2.registerFileRepresentation(
-      forTypeIdentifier: UTType.movie.identifier, fileOptions: [], visibility: .all
-    ) { completion in
-      completion(url2, false, nil)
-      return nil
-    }
-    item2.attachments = [p2]
+    item2.attachments = [makeMovieItemProvider(url: url2)]
 
     let loaded = try await engine.loadClips(from: [item1, item2])
     defer { engine.cleanupTemporaryFiles(for: loaded) }
@@ -627,41 +553,5 @@ struct VideoMergeEngineTests {
     #expect(loaded.count == 2)
     #expect(abs(loaded[0].duration - 1.0) < 0.25)
     #expect(abs(loaded[1].duration - 1.5) < 0.25)
-  }
-}
-
-// MARK: - Thread-Safe Test Recorders
-
-private final class PhaseRecorder: @unchecked Sendable {
-  private let lock = NSLock()
-  private var phases: [MergePhase] = []
-
-  func record(_ phase: MergePhase) {
-    lock.lock()
-    phases.append(phase)
-    lock.unlock()
-  }
-
-  func snapshot() -> [MergePhase] {
-    lock.lock()
-    defer { lock.unlock() }
-    return phases
-  }
-}
-
-private final class ProgressRecorder: @unchecked Sendable {
-  private let lock = NSLock()
-  private var events: [(Int, Int)] = []
-
-  func record(current: Int, total: Int) {
-    lock.lock()
-    events.append((current, total))
-    lock.unlock()
-  }
-
-  func snapshot() -> [(Int, Int)] {
-    lock.lock()
-    defer { lock.unlock() }
-    return events
   }
 }

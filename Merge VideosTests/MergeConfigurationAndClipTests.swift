@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
+
 @testable import Merge_Videos
 
 @Suite("MergeConfiguration, ClipItem, and Formatting")
@@ -10,36 +11,23 @@ struct MergeConfigurationAndClipTests {
 
   @Test("Effective transition duration is zero for instant cut or non-positive duration")
   func effectiveTransitionDurationZeroCases() {
-    let noneConfig = MergeConfiguration(
-      transitionStyle: .none,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
-    )
+    let noneConfig = MergeConfiguration(transitionStyle: .none)
     #expect(noneConfig.effectiveTransitionDuration(between: 5.0, and: 5.0) == 0)
 
     let zeroDurationConfig = MergeConfiguration(
       transitionStyle: .crossDissolve,
-      transitionDuration: 0,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
+      transitionDuration: 0
     )
     #expect(zeroDurationConfig.effectiveTransitionDuration(between: 5.0, and: 5.0) == 0)
   }
 
-  @Test("Effective transition duration uses configured value for normal clips and clamps to 45% for short clips")
+  @Test(
+    "Effective transition duration uses configured value for normal clips and clamps to 45% for short clips"
+  )
   func effectiveTransitionDurationClamping() {
     let config = MergeConfiguration(
       transitionStyle: .crossDissolve,
-      transitionDuration: 0.75,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
+      transitionDuration: 0.75
     )
 
     // Both clips plenty long -> full 0.75s
@@ -59,14 +47,7 @@ struct MergeConfigurationAndClipTests {
 
   @Test("Estimated output duration handles empty, single clip, and instant cut")
   func estimatedOutputDurationBasic() {
-    let config = MergeConfiguration(
-      transitionStyle: .none,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
-    )
+    let config = MergeConfiguration()
 
     #expect(config.estimatedOutputDuration(for: []) == 0)
     #expect(config.estimatedOutputDuration(for: [4.5]) == 4.5)
@@ -75,14 +56,7 @@ struct MergeConfigurationAndClipTests {
 
   @Test("Estimated output duration subtracts transition overlaps across multiple boundaries")
   func estimatedOutputDurationWithTransitions() {
-    let config = MergeConfiguration(
-      transitionStyle: .slide,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: false,
-      autoTrimInterval: .thirtySeconds
-    )
+    let config = MergeConfiguration(transitionStyle: .slide)
 
     // Single clip has no boundary overlap.
     #expect(config.estimatedOutputDuration(for: [3.0]) == 3.0)
@@ -96,29 +70,19 @@ struct MergeConfigurationAndClipTests {
 
   @Test("Auto-trim floors durations at or above the interval and leaves shorter videos untouched")
   func estimatedOutputDurationAutoTrim() {
-    let trim30 = MergeConfiguration(
-      transitionStyle: .none,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: true,
-      autoTrimInterval: .thirtySeconds
-    )
+    let trim15 = MergeConfiguration(autoTrimEnabled: true, autoTrimInterval: .fifteenSeconds)
+    #expect(trim15.estimatedOutputDuration(for: [7, 7]) == 14)
+    #expect(trim15.estimatedOutputDuration(for: [7, 8]) == 15)
+    #expect(trim15.estimatedOutputDuration(for: [10, 14]) == 15)
+    #expect(trim15.estimatedOutputDuration(for: [20, 27]) == 45)
 
+    let trim30 = MergeConfiguration(autoTrimEnabled: true, autoTrimInterval: .thirtySeconds)
     #expect(trim30.estimatedOutputDuration(for: [10, 14]) == 24)
     #expect(trim30.estimatedOutputDuration(for: [15, 15]) == 30)
     #expect(trim30.estimatedOutputDuration(for: [20, 27.5]) == 30)
     #expect(trim30.estimatedOutputDuration(for: [50, 45]) == 90)
 
-    let trim60 = MergeConfiguration(
-      transitionStyle: .none,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
-      autoTrimEnabled: true,
-      autoTrimInterval: .oneMinute
-    )
-
+    let trim60 = MergeConfiguration(autoTrimEnabled: true, autoTrimInterval: .oneMinute)
     #expect(trim60.estimatedOutputDuration(for: [30, 29]) == 59)
     #expect(trim60.estimatedOutputDuration(for: [30, 30]) == 60)
     #expect(trim60.estimatedOutputDuration(for: [70, 55]) == 120)
@@ -128,9 +92,6 @@ struct MergeConfigurationAndClipTests {
   func estimatedOutputDurationTransitionsThenAutoTrim() {
     let config = MergeConfiguration(
       transitionStyle: .crossDissolve,
-      transitionDuration: 0.5,
-      preserveMetadata: true,
-      deleteSourceClipsAfterMerge: false,
       autoTrimEnabled: true,
       autoTrimInterval: .thirtySeconds
     )

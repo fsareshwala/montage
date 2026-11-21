@@ -26,32 +26,18 @@ final class HostAppUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["Transitions"].exists)
 
     // Scroll down to verify Photo Library Hygiene and Uniform Video Length sections
-    let keepDateAndLocation = app.switches["Keep Original Date and Location"]
-    if !keepDateAndLocation.exists || !keepDateAndLocation.isHittable {
-      app.swipeUp()
+    for toggleTitle in [
+      "Keep Original Date and Location",
+      "Post-Merge Source Cleanup",
+      "Auto-Trim to Fixed Intervals",
+    ] {
+      let toggle = app.switches[toggleTitle]
+      scrollIntoView(toggle, in: app)
+      XCTAssertTrue(
+        toggle.waitForExistence(timeout: 3),
+        "'\(toggleTitle)' toggle should be visible."
+      )
     }
-    XCTAssertTrue(
-      keepDateAndLocation.waitForExistence(timeout: 3),
-      "'Keep Original Date and Location' toggle should be visible."
-    )
-
-    let sourceCleanupToggle = app.switches["Post-Merge Source Cleanup"]
-    if !sourceCleanupToggle.exists || !sourceCleanupToggle.isHittable {
-      app.swipeUp()
-    }
-    XCTAssertTrue(
-      sourceCleanupToggle.waitForExistence(timeout: 3),
-      "'Post-Merge Source Cleanup' toggle should be visible."
-    )
-
-    let autoTrimToggle = app.switches["Auto-Trim to Fixed Intervals"]
-    if !autoTrimToggle.exists || !autoTrimToggle.isHittable {
-      app.swipeUp()
-    }
-    XCTAssertTrue(
-      autoTrimToggle.waitForExistence(timeout: 3),
-      "'Auto-Trim to Fixed Intervals' toggle should be visible."
-    )
 
     // Guard copy constraints across all rendered static texts: no "outing" and no "&".
     for textElement in app.staticTexts.allElementsBoundByIndex {
@@ -73,38 +59,14 @@ final class HostAppUITests: XCTestCase {
     XCTAssertTrue(app.navigationBars["Merge Videos"].waitForExistence(timeout: 5))
 
     // Open Transition Style picker and select Cross Dissolve
-    let transitionPicker = app.buttons.matching(
-      NSPredicate(format: "label CONTAINS 'Transition Style'")
-    ).firstMatch
-    if !transitionPicker.isHittable {
-      app.swipeUp()
-    }
-    XCTAssertTrue(transitionPicker.waitForExistence(timeout: 3))
-    transitionPicker.tap()
-
-    let crossDissolveOption = app.buttons["Cross Dissolve"]
-    XCTAssertTrue(crossDissolveOption.waitForExistence(timeout: 3))
-    crossDissolveOption.tap()
+    selectPickerOption("Cross Dissolve", from: "Transition Style", in: app)
 
     // Selecting an animated transition should reveal the duration picker
-    let durationPicker = app.buttons.matching(
-      NSPredicate(format: "label CONTAINS 'Transition Duration'")
-    ).firstMatch
-    XCTAssertTrue(
-      durationPicker.waitForExistence(timeout: 3),
-      "Transition Duration picker should appear when an animated transition is selected."
-    )
-    durationPicker.tap()
-
-    let longDurationOption = app.buttons["0.75 seconds"]
-    XCTAssertTrue(longDurationOption.waitForExistence(timeout: 3))
-    longDurationOption.tap()
+    selectPickerOption("0.75 seconds", from: "Transition Duration", in: app)
 
     // Scroll to Auto-Trim toggle and turn it ON
     let autoTrimSwitch = app.switches["Auto-Trim to Fixed Intervals"]
-    if !autoTrimSwitch.exists || !autoTrimSwitch.isHittable {
-      app.swipeUp()
-    }
+    scrollIntoView(autoTrimSwitch, in: app)
     XCTAssertTrue(autoTrimSwitch.waitForExistence(timeout: 3))
     if (autoTrimSwitch.value as? String) == "0" {
       autoTrimSwitch.switches.firstMatch.exists
@@ -112,12 +74,8 @@ final class HostAppUITests: XCTestCase {
         : autoTrimSwitch.tap()
     }
 
-    let trimIntervalPicker = app.buttons.matching(
-      NSPredicate(format: "label CONTAINS 'Trim Interval'")
-    ).firstMatch
-    if !trimIntervalPicker.isHittable {
-      app.swipeUp()
-    }
+    let trimIntervalPicker = pickerButton(titled: "Trim Interval", in: app)
+    scrollIntoView(trimIntervalPicker, in: app)
     XCTAssertTrue(
       trimIntervalPicker.waitForExistence(timeout: 3),
       "Trim Interval picker should appear when Auto-Trim is enabled."
@@ -128,20 +86,15 @@ final class HostAppUITests: XCTestCase {
     app.launch()
     XCTAssertTrue(app.navigationBars["Merge Videos"].waitForExistence(timeout: 5))
 
-    let persistedTransitionPicker = app.buttons.matching(
-      NSPredicate(format: "label CONTAINS 'Transition Style'")
-    ).firstMatch
-    if !persistedTransitionPicker.isHittable {
-      app.swipeUp()
-    }
+    let persistedTransitionPicker = pickerButton(titled: "Transition Style", in: app)
+    scrollIntoView(persistedTransitionPicker, in: app)
     XCTAssertTrue(persistedTransitionPicker.waitForExistence(timeout: 3))
     XCTAssertTrue(
       persistedTransitionPicker.label.contains("Cross Dissolve"),
       "Transition Style should persist as Cross Dissolve after relaunch, got: \(persistedTransitionPicker.label)"
     )
-    let persistedDurationPicker = app.buttons.matching(
-      NSPredicate(format: "label CONTAINS 'Transition Duration'")
-    ).firstMatch
+
+    let persistedDurationPicker = pickerButton(titled: "Transition Duration", in: app)
     XCTAssertTrue(persistedDurationPicker.waitForExistence(timeout: 3))
     XCTAssertTrue(
       persistedDurationPicker.label.contains("0.75 seconds"),
@@ -149,19 +102,44 @@ final class HostAppUITests: XCTestCase {
     )
 
     // Restore clean defaults (Instant Cut + Auto-Trim OFF)
-    persistedTransitionPicker.tap()
-    let instantCutOption = app.buttons["None (Instant Cut)"]
-    XCTAssertTrue(instantCutOption.waitForExistence(timeout: 3))
-    instantCutOption.tap()
+    selectPickerOption("None (Instant Cut)", from: "Transition Style", in: app)
 
     let resetAutoTrimSwitch = app.switches["Auto-Trim to Fixed Intervals"]
-    if !resetAutoTrimSwitch.isHittable {
-      app.swipeUp()
-    }
+    scrollIntoView(resetAutoTrimSwitch, in: app)
     if resetAutoTrimSwitch.waitForExistence(timeout: 3),
       (resetAutoTrimSwitch.value as? String) == "1"
     {
       resetAutoTrimSwitch.tap()
     }
+  }
+
+  // MARK: - Helpers
+
+  private func pickerButton(titled title: String, in app: XCUIApplication) -> XCUIElement {
+    app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch
+  }
+
+  private func scrollIntoView(_ element: XCUIElement, in app: XCUIApplication) {
+    if !element.exists || !element.isHittable {
+      app.swipeUp()
+    }
+  }
+
+  private func selectPickerOption(
+    _ option: String,
+    from pickerTitle: String,
+    in app: XCUIApplication
+  ) {
+    let picker = pickerButton(titled: pickerTitle, in: app)
+    scrollIntoView(picker, in: app)
+    XCTAssertTrue(picker.waitForExistence(timeout: 3), "\(pickerTitle) picker should exist.")
+    picker.tap()
+
+    let optionButton = app.buttons[option]
+    XCTAssertTrue(
+      optionButton.waitForExistence(timeout: 3),
+      "Option '\(option)' should appear in \(pickerTitle) picker."
+    )
+    optionButton.tap()
   }
 }

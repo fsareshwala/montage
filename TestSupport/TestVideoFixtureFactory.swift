@@ -26,6 +26,15 @@ enum TestVideoFixtureFactory {
     case audioFormatFailed
   }
 
+  /// Creates an isolated temporary directory scoped under `suiteName` for test artifacts.
+  static func makeTempDirectory(named suiteName: String) throws -> URL {
+    let dir = FileManager.default.temporaryDirectory
+      .appendingPathComponent(suiteName, isDirectory: true)
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    return dir
+  }
+
   static func makeVideo(
     in directory: URL,
     filename: String = "\(UUID().uuidString).mov",
@@ -320,7 +329,9 @@ enum TestVideoFixtureFactory {
     return buffer
   }
 
-  private static func makePCMFormatDescription(sampleRate: Double) throws -> CMAudioFormatDescription {
+  private static func makePCMFormatDescription(sampleRate: Double) throws
+    -> CMAudioFormatDescription
+  {
     var asbd = AudioStreamBasicDescription(
       mSampleRate: sampleRate,
       mFormatID: kAudioFormatLinearPCM,

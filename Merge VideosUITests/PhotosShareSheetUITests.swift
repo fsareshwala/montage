@@ -1,7 +1,3 @@
-import AVFoundation
-import CoreGraphics
-import CoreMedia
-import CoreVideo
 import Foundation
 import Photos
 import XCTest
@@ -68,7 +64,8 @@ final class PhotosShareSheetUITests: XCTestCase {
     }
 
     let totalVideos = targetQuery.count
-    XCTAssertGreaterThanOrEqual(totalVideos, 2, "Need at least 2 videos in Photos to test Share Sheet.")
+    XCTAssertGreaterThanOrEqual(
+      totalVideos, 2, "Need at least 2 videos in Photos to test Share Sheet.")
 
     // Pick the last 2 videos (typically at the bottom of the grid, immediately visible).
     for index in [totalVideos - 2, totalVideos - 1] {
@@ -116,7 +113,8 @@ final class PhotosShareSheetUITests: XCTestCase {
     )
 
     let mergeButton = photos.buttons["Merge and Save"].firstMatch
-    XCTAssertTrue(mergeButton.waitForExistence(timeout: 5), "'Merge and Save' button should appear.")
+    XCTAssertTrue(
+      mergeButton.waitForExistence(timeout: 5), "'Merge and Save' button should appear.")
     XCTAssertTrue(mergeButton.isEnabled, "'Merge and Save' should be enabled for 2 loaded clips.")
 
     // 8. Cancel and verify the Share Extension dismisses cleanly.
@@ -203,16 +201,14 @@ final class PhotosShareSheetUITests: XCTestCase {
     }
 
     let needed = 2 - existingVideos.count
-    let tempDir = FileManager.default.temporaryDirectory
-      .appendingPathComponent("MergeVideosUITestFixtures", isDirectory: true)
-    try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+    let tempDir = try TestVideoFixtureFactory.makeTempDirectory(named: "MergeVideosUITestFixtures")
     defer { try? FileManager.default.removeItem(at: tempDir) }
 
     for index in 0..<needed {
-      let videoURL = try await makeSampleVideo(
+      let videoURL = try await TestVideoFixtureFactory.makeVideo(
         in: tempDir,
         filename: "ui_test_video_\(index)_\(UUID().uuidString).mov",
-        isRed: index % 2 == 0
+        color: index % 2 == 0 ? .red : .blue
       )
       try await PHPhotoLibrary.shared().performChanges {
         PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: videoURL)
@@ -255,111 +251,4 @@ final class PhotosShareSheetUITests: XCTestCase {
 
     return await authTask.value
   }
-
-  private func makeSampleVideo(in directory: URL, filename: String, isRed: Bool) async throws -> URL {
-    let outputURL = directory.appendingPathComponent(filename)
-    try? FileManager.default.removeItem(at: outputURL)
-
-    let width = 160
-    let height = 90
-    let fps: Int32 = 15
-    let totalFrames = 30  // 2 seconds
-
-    let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mov)
-    let videoInput = AVAssetWriterInput(
-      mediaType: .video,
-      outputSettings: [
-        AVVideoCodecKey: AVVideoCodecType.h264,
-        AVVideoWidthKey: width,
-        AVVideoHeightKey: height,
-      ]
-    )
-
-    var pixelBuffer: CVPixelBuffer?
-    let attrs: [CFString: Any] = [
-      kCVPixelBufferCGImageCompatibilityKey: true,
-      kCVPixelBufferCGBitmapContextCompatibilityKey: true,
-    ]
-    CVPixelBufferCreate(
-      kCFAllocatorDefault,
-      width,
-      height,
-      kCVPixelFormatType_32BGRA,
-      attrs as CFDictionary,
-      &pixelBuffer
-    )
-    let buffer = try XCTUnwrap(pixelBuffer)
-
-    CVPixelBufferLockBaseAddress(buffer, [])
-    if let baseAddress = CVPixelBufferGetBaseAddress(buffer) {
-      let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
-      let ptr = baseAddress.assumingMemoryBound(to: UInt8.self)
-      let b: UInt8 = isRed ? 40 : 220
-      let g: UInt8 = isRed ? 60 : 120
-      let r: UInt8 = isRed ? 220 : 50
-      for y in 0..<height {
-        let row = ptr.advanced(by: y * bytesPerRow)
-        for x in 0..<width {
-          let offset = x * 4
-          row[offset + 0] = b
-          row[offset + 1] = g
-          row[offset + 2] = r
-          row[offset + 3] = 255
-        }
-      }
-    }
-    CVPixelBufferUnlockBaseAddress(buffer, [])
-
-    if #available(iOS 26, *) {
-      let receiver = writer.inputPixelBufferReceiver(for: videoInput, pixelBufferAttributes: nil)
-      try writer.start()
-      writer.startSession(atSourceTime: .zero)
-
-      let readOnlyFrame = CVReadOnlyPixelBuffer(unsafeBuffer: buffer)
-      for frameIndex in 0..<totalFrames {
-        let pts = CMTime(value: CMTimeValue(frameIndex), timescale: fps)
-        try await receiver.append(readOnlyFrame, with: pts)
-      }
-      receiver.finish()
-    } else {
-      let adaptor = AVAssetWriterInputPixelBufferAdaptor(
-        assetWriterInput: videoInput,
-        sourcePixelBufferAttributes: nil
-      )
-      writer.add(videoInput)
-      XCTAssertTrue(writer.startWriting())
-      writer.startSession(atSourceTime: .zero)
-
-      let inputBox = UITestSendableBox(videoInput)
-      let adaptorBox = UITestSendableBox(adaptor)
-      let bufferBox = UITestSendableBox(buffer)
-      let queue = DispatchQueue(label: "PhotosShareSheetUITests.video")
-
-      await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-        var frameIndex = 0
-        var finished = false
-        inputBox.value.requestMediaDataWhenReady(on: queue) {
-          while inputBox.value.isReadyForMoreMediaData && frameIndex < totalFrames {
-            let pts = CMTime(value: CMTimeValue(frameIndex), timescale: fps)
-            _ = adaptorBox.value.append(bufferBox.value, withPresentationTime: pts)
-            frameIndex += 1
-          }
-          if frameIndex >= totalFrames, !finished {
-            finished = true
-            inputBox.value.markAsFinished()
-            continuation.resume()
-          }
-        }
-      }
-    }
-    await writer.finishWriting()
-
-    XCTAssertEqual(writer.status, .completed)
-    return outputURL
-  }
-}
-
-private final class UITestSendableBox<Value>: @unchecked Sendable {
-  let value: Value
-  init(_ value: Value) { self.value = value }
 }

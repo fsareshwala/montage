@@ -4,6 +4,7 @@ import CoreMedia
 import Foundation
 import Testing
 import UIKit
+
 @testable import Merge_Videos
 
 @Suite("iOS Compatibility Layers")
@@ -16,9 +17,7 @@ struct CompatibilityLayerTests {
     )
     #expect(appMinOS == "15.0")
 
-    let pluginsURL = try #require(Bundle.main.builtInPlugInsURL)
-    let extensionURL = pluginsURL.appendingPathComponent("ShareExtension.appex", isDirectory: true)
-    let extensionBundle = try #require(Bundle(url: extensionURL))
+    let extensionBundle = try Bundle.embeddedShareExtension()
     let extMinOS = try #require(
       extensionBundle.object(forInfoDictionaryKey: "MinimumOSVersion") as? String
     )
@@ -47,10 +46,7 @@ struct CompatibilityLayerTests {
 
   @Test("VideoCompositionBuilder creates valid instructions and video composition")
   func videoCompositionBuilderCreatesValidComposition() async throws {
-    let dir = FileManager.default.temporaryDirectory
-      .appendingPathComponent("CompatibilityLayerTests", isDirectory: true)
-      .appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let dir = try TestVideoFixtureFactory.makeTempDirectory(named: "CompatibilityLayerTests")
     defer { try? FileManager.default.removeItem(at: dir) }
 
     let videoURL = try await TestVideoFixtureFactory.makeVideo(
@@ -89,10 +85,7 @@ struct CompatibilityLayerTests {
 
   @Test("VideoThumbnailGenerator generates a non-nil thumbnail within requested bounds")
   func thumbnailGeneratorProducesImage() async throws {
-    let dir = FileManager.default.temporaryDirectory
-      .appendingPathComponent("CompatibilityLayerTests", isDirectory: true)
-      .appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let dir = try TestVideoFixtureFactory.makeTempDirectory(named: "CompatibilityLayerTests")
     defer { try? FileManager.default.removeItem(at: dir) }
 
     let videoURL = try await TestVideoFixtureFactory.makeVideo(

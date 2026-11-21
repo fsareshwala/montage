@@ -7,7 +7,8 @@ struct ShareExtensionConfigurationTests {
   @Test("Host app Info.plist has expected display name, bundle ID, and clean usage description")
   func hostAppPhotoUsageDescription() throws {
     #expect(Bundle.main.bundleIdentifier == "com.sareshwala.faraaz.mergevideos")
-    #expect(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String == "Merge Videos")
+    #expect(
+      Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String == "Merge Videos")
 
     let usage = try #require(
       Bundle.main.object(forInfoDictionaryKey: "NSPhotoLibraryUsageDescription") as? String
@@ -19,9 +20,7 @@ struct ShareExtensionConfigurationTests {
 
   @Test("Embedded ShareExtension declares valid Photos Share Sheet activation rules")
   func shareExtensionActivationRuleAndMetadata() throws {
-    let pluginsURL = try #require(Bundle.main.builtInPlugInsURL)
-    let extensionURL = pluginsURL.appendingPathComponent("ShareExtension.appex", isDirectory: true)
-    let extensionBundle = try #require(Bundle(url: extensionURL))
+    let extensionBundle = try Bundle.embeddedShareExtension()
     let info = try #require(extensionBundle.infoDictionary)
 
     #expect(extensionBundle.bundleIdentifier == "com.sareshwala.faraaz.mergevideos.share")
