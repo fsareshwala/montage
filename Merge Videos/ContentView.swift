@@ -18,7 +18,7 @@ struct ContentView: View {
   }
 
   var body: some View {
-    NavigationStack {
+    CompatibleNavigationContainer {
       Form {
         statusAndGuideSection
         transitionsSection
@@ -27,15 +27,15 @@ struct ContentView: View {
       }
       .navigationTitle("Merge Videos")
       .navigationBarTitleDisplayMode(.large)
-      .animation(.snappy(duration: 0.25), value: settings.transitionStyle)
-      .animation(.snappy(duration: 0.25), value: settings.autoTrimEnabled)
-      .sensoryFeedback(.selection, trigger: settings.transitionStyle)
-      .sensoryFeedback(.selection, trigger: settings.transitionDuration)
-      .sensoryFeedback(.selection, trigger: settings.autoTrimInterval)
+      .animation(AnimationCompatibility.shared.snappy(duration: 0.25), value: settings.transitionStyle)
+      .animation(AnimationCompatibility.shared.snappy(duration: 0.25), value: settings.autoTrimEnabled)
+      .compatibleSensoryFeedback(.selection, trigger: settings.transitionStyle)
+      .compatibleSensoryFeedback(.selection, trigger: settings.transitionDuration)
+      .compatibleSensoryFeedback(.selection, trigger: settings.autoTrimInterval)
       .onAppear {
         refreshState()
       }
-      .onChange(of: scenePhase) { _, newPhase in
+      .compatibleOnChange(of: scenePhase) { newPhase in
         if newPhase == .active {
           refreshState()
         }
@@ -108,7 +108,7 @@ struct ContentView: View {
           } else {
             Image(
               systemName: photoAuthStatus == .notDetermined
-                ? "photo.badge.checkmark" : "gearshape.fill")
+                ? SystemSymbolCompatibility.shared.photoAccessRequest : "gearshape.fill")
           }
           Text("Enable Full Photo Access")
             .font(.headline)
@@ -131,7 +131,7 @@ struct ContentView: View {
       VStack(alignment: .leading, spacing: 10) {
         QuickGuideStepRow(
           stepNumber: 1,
-          symbolName: "photo.stack.fill",
+          symbolName: SystemSymbolCompatibility.shared.photoStack,
           tint: .blue,
           text: "Select 2 or more clips in Photos"
         )
@@ -400,8 +400,7 @@ private struct SettingIconBadge: View {
       .foregroundStyle(.white)
       .frame(width: 28, height: 28)
       .background(
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
-          .fill(color.gradient)
+        CompatibleGradientBadgeBackground(color: color, cornerRadius: 6)
       )
       .accessibilityHidden(true)
   }

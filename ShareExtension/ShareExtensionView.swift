@@ -40,7 +40,7 @@ struct ShareExtensionView: View {
   }
 
   var body: some View {
-    NavigationStack {
+    CompatibleNavigationContainer {
       Group {
         if isLoadingClips {
           loadingStateView
@@ -62,7 +62,7 @@ struct ShareExtensionView: View {
           .disabled(isCompleted)
         }
 
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: ToolbarPlacementCompatibility.shared.topBarTrailing) {
           if !clips.isEmpty {
             summaryPill
           }
@@ -74,8 +74,8 @@ struct ShareExtensionView: View {
         }
       }
     }
-    .sensoryFeedback(.selection, trigger: reorderFeedbackTrigger)
-    .sensoryFeedback(.success, trigger: completionFeedbackTrigger)
+    .compatibleSensoryFeedback(.selection, trigger: reorderFeedbackTrigger)
+    .compatibleSensoryFeedback(.success, trigger: completionFeedbackTrigger)
     .task {
       await loadSharedClips()
     }
@@ -137,19 +137,14 @@ struct ShareExtensionView: View {
   }
 
   private var emptyStateView: some View {
-    ContentUnavailableView {
-      Label("No Videos Found", systemImage: "film.stack")
-    } description: {
-      Text(
-        errorMessage
-          ?? "Select at least 2 videos from Photos to merge them into a single montage.")
-    } actions: {
-      Button("Close") {
-        cancelAndDismiss()
-      }
-      .buttonStyle(.borderedProminent)
-      .frame(minHeight: 44)
-    }
+    CompatibleContentUnavailableView(
+      title: "No Videos Found",
+      systemImage: SystemSymbolCompatibility.shared.videoStack,
+      description: errorMessage
+        ?? "Select at least 2 videos from Photos to merge them into a single montage.",
+      actionTitle: "Close",
+      action: cancelAndDismiss
+    )
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
@@ -185,7 +180,7 @@ struct ShareExtensionView: View {
     }
     .listStyle(.insetGrouped)
     .environment(\.editMode, .constant(.active))
-    .scrollDisabled(isMerging)
+    .compatibleScrollDisabled(isMerging)
   }
 
   // MARK: - Floating Bottom Action Bar
@@ -202,17 +197,17 @@ struct ShareExtensionView: View {
     }
     .padding(16)
     .frame(maxWidth: .infinity)
-    .modifier(LiquidGlassBarModifier())
+    .compatibleFloatingBar(cornerRadius: 24)
     .padding(.horizontal, 16)
     .padding(.bottom, 8)
-    .animation(.snappy(duration: 0.25), value: mergePhase)
+    .animation(AnimationCompatibility.shared.snappy(duration: 0.25), value: mergePhase)
   }
 
   private var mergeActionButton: some View {
     Button {
       startMerge()
     } label: {
-      Label("Merge and Save", systemImage: "film.stack.fill")
+      Label("Merge and Save", systemImage: SystemSymbolCompatibility.shared.videoStackFill)
         .font(.headline)
         .frame(maxWidth: .infinity, minHeight: 50)
     }
@@ -248,7 +243,7 @@ struct ShareExtensionView: View {
       Image(systemName: "checkmark.circle.fill")
         .font(.title2)
         .foregroundStyle(.green)
-        .symbolEffect(.bounce, value: completionFeedbackTrigger)
+        .compatibleSymbolBounce(value: completionFeedbackTrigger)
 
       Text("Saved to Photos")
         .font(.headline)
@@ -320,7 +315,7 @@ struct ShareExtensionView: View {
         mergePhase = .completed
         completionFeedbackTrigger += 1
 
-        try? await Task.sleep(for: .milliseconds(1100))
+        try? await TaskSleepCompatibility.shared.sleep(milliseconds: 1100)
         engine.cleanupTemporaryFiles(for: currentClips)
         onComplete()
       } catch is CancellationError {
@@ -411,28 +406,6 @@ private struct ClipRowView: View {
       "Clip \(orderIndex), duration \(clip.formattedDuration), recorded at \(captureTime)"
     } else {
       "Clip \(orderIndex), duration \(clip.formattedDuration)"
-    }
-  }
-}
-
-// MARK: - Liquid Glass Bottom Bar Modifier
-
-/// Uses native iOS 26 Liquid Glass (`glassEffect`) with an `.ultraThinMaterial` fallback for iOS 18–25.
-private struct LiquidGlassBarModifier: ViewModifier {
-  private let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
-
-  func body(content: Content) -> some View {
-    if #available(iOS 26, *) {
-      content
-        .glassEffect(.regular, in: shape)
-    } else {
-      content
-        .background(.ultraThinMaterial, in: shape)
-        .overlay(
-          shape
-            .strokeBorder(Color(.separator).opacity(0.35), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.12), radius: 14, y: 4)
     }
   }
 }
