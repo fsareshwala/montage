@@ -37,7 +37,7 @@ agents must keep this file synchronized with code changes.
   for fastest export speed.
 - **Key Files:** `Shared/AppSettings.swift`, `Shared/VideoMergeEngine.swift`.
 
-### 4. Original Date and GPS Preservation (Host App Setting — Default: ON)
+### 4. Preserve Metadata (Host App Setting — Default: ON)
 
 - **Behavior:** Copies `creationDate` and `location` from the first clip's `PHAsset` onto the newly
   created `PHAssetCreationRequest`.

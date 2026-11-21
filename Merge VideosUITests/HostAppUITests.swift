@@ -27,7 +27,7 @@ final class HostAppUITests: XCTestCase {
 
     // Scroll down to verify Photo Library Hygiene and Uniform Video Length sections
     for toggleTitle in [
-      "Keep Original Date and Location",
+      "Preserve Metadata",
       "Post-Merge Source Cleanup",
       "Auto-Trim to Fixed Intervals",
     ] {

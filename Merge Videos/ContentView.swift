@@ -236,7 +236,7 @@ struct ContentView: View {
   private var hygieneSection: some View {
     Section("Photo Library Hygiene") {
       SettingToggleRow(
-        title: "Keep Original Date and Location",
+        title: "Preserve Metadata",
         description:
           "Copies the capture date, time, and GPS location from the first clip onto the merged video so it stays in chronological order in your library.",
         systemImage: "calendar.badge.clock",
