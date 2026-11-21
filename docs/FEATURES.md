@@ -1,14 +1,14 @@
-# Merge Videos — Feature Ledger & Provenance
+# Montage — Feature Ledger & Provenance
 
-This document tracks every implemented feature in **Merge Videos**
-(`com.sareshwala.faraaz.mergevideos`), its default configuration, and the user intent behind it. AI
+This document tracks every implemented feature in **Montage**
+(`com.sareshwala.faraaz.montage`), its default configuration, and the user intent behind it. AI
 agents must keep this file synchronized with code changes.
 
 ---
 
 ## Implemented Features (v1.0 Baseline)
 
-### 1. Share Sheet Clip Ordering & Merging (`com.sareshwala.faraaz.mergevideos.share`)
+### 1. Share Sheet Clip Ordering & Merging (`com.sareshwala.faraaz.montage.share`)
 
 - **Behavior:** Accepts 2–30 videos from the iOS Photos Share Sheet, displays a compact reorderable
   list with immediate drag handles, thumbnail previews, clip durations, and a floating bottom
@@ -67,10 +67,10 @@ agents must keep this file synchronized with code changes.
 
 ### 7. Inline About and Other Apps Sections (Host App)
 
-- **Behavior:** Displays inline `About` (`Privacy Policy`, `Share Merge Videos`, `Report a Bug`,
+- **Behavior:** Displays inline `About` (`Privacy Policy`, `Share Montage`, `Report a Bug`,
   and `Source Code`) and `Other Apps from the Developer` (`Forecash` and `Clean Dial`) sections
   directly underneath `Uniform Video Length` in the host app `Form`.
 - **Provenance & Rationale:** Mirrors the developer's other open-source iOS apps for transparency,
   easy issue reporting, and cross-app discovery without requiring a separate modal sheet.
-- **Key Files:** `Merge Videos/ContentView.swift`, `Merge Videos/PrivacyPolicyView.swift`,
-  `Merge Videos/OtherAppsView.swift`, `Shared/UICompatibility.swift`.
+- **Key Files:** `Montage/ContentView.swift`, `Montage/PrivacyPolicyView.swift`,
+  `Montage/OtherAppsView.swift`, `Shared/UICompatibility.swift`.
