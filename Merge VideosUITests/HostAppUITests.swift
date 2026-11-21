@@ -39,6 +39,40 @@ final class HostAppUITests: XCTestCase {
       )
     }
 
+    // Scroll down to verify About and Other Apps sections
+    let privacyRow = app.buttons["Privacy Policy"].firstMatch
+    scrollIntoView(privacyRow, in: app)
+    XCTAssertTrue(
+      privacyRow.waitForExistence(timeout: 3),
+      "'Privacy Policy' row should be visible in About section."
+    )
+
+    // Verify Privacy Policy navigation pushes PrivacyPolicyView cleanly
+    privacyRow.tap()
+    XCTAssertTrue(
+      app.navigationBars["Privacy Policy"].waitForExistence(timeout: 5),
+      "Tapping Privacy Policy should navigate to the Privacy Policy screen."
+    )
+    app.navigationBars.buttons.firstMatch.tap()
+    XCTAssertTrue(app.navigationBars["Merge Videos"].waitForExistence(timeout: 5))
+
+    for expectedText in [
+      "Share Merge Videos",
+      "Report a Bug",
+      "Source Code",
+      "This app is fully open source. You can read the code on GitHub.",
+      "Other Apps from the Developer",
+      "Forecash",
+      "Clean Dial",
+    ] {
+      let text = app.staticTexts[expectedText]
+      scrollIntoView(text, in: app)
+      XCTAssertTrue(
+        text.waitForExistence(timeout: 3),
+        "'\(expectedText)' should be visible in About or Other Apps section."
+      )
+    }
+
     // Guard copy constraints across all rendered static texts: no "outing" and no "&".
     for textElement in app.staticTexts.allElementsBoundByIndex {
       let label = textElement.label
@@ -120,7 +154,7 @@ final class HostAppUITests: XCTestCase {
   }
 
   private func scrollIntoView(_ element: XCUIElement, in app: XCUIApplication) {
-    if !element.exists || !element.isHittable {
+    for _ in 0..<4 where !element.exists || !element.isHittable {
       app.swipeUp()
     }
   }

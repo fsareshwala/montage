@@ -25,6 +25,8 @@ struct ContentView: View {
         transitionsSection
         hygieneSection
         uniformLengthSection
+        aboutSection
+        otherAppsSection
       }
       .navigationTitle("Merge Videos")
       .navigationBarTitleDisplayMode(.large)
@@ -287,6 +289,83 @@ struct ContentView: View {
     let interval = settings.autoTrimInterval
     return
       "Automatically trims the end of the merged video down to the nearest \(interval.markLabel) mark (\(interval.exampleMarks)) so your montages have uniform lengths in your library. Footage past the last completed interval is trimmed off; videos under \(interval.displayName) are untouched."
+  }
+
+  // MARK: - Section 6: About
+
+  private static let githubURL = URL(string: "https://github.com/fsareshwala/merge-videos")!
+  private static let issuesURL = URL(string: "https://github.com/fsareshwala/merge-videos/issues")!
+
+  private var aboutSection: some View {
+    Section("About") {
+      NavigationLink {
+        PrivacyPolicyView()
+      } label: {
+        Label {
+          Text("Privacy Policy")
+            .foregroundStyle(.primary)
+        } icon: {
+          SettingIcon(
+            systemImage: SystemSymbolCompatibility.shared.privacyPolicy,
+            color: .accentColor
+          )
+        }
+      }
+
+      CompatibleShareLink(
+        item: Self.githubURL,
+        message: "Check out Merge Videos, the easiest way to merge clips from Photos!"
+      ) {
+        Label {
+          Text("Share Merge Videos")
+            .foregroundStyle(.primary)
+        } icon: {
+          SettingIcon(
+            systemImage: "square.and.arrow.up",
+            color: .accentColor
+          )
+        }
+      }
+
+      Link(destination: Self.issuesURL) {
+        Label {
+          Text("Report a Bug")
+            .foregroundStyle(.primary)
+        } icon: {
+          SettingIcon(
+            systemImage: "exclamationmark.circle",
+            color: .accentColor
+          )
+        }
+      }
+
+      Link(destination: Self.githubURL) {
+        Label {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Source Code")
+              .font(.body)
+              .foregroundStyle(.primary)
+            Text("This app is fully open source. You can read the code on GitHub.")
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+              .fixedSize(horizontal: false, vertical: true)
+          }
+        } icon: {
+          SettingIcon(
+            systemImage: "curlybraces.square",
+            color: .accentColor
+          )
+        }
+      }
+    }
+  }
+
+  // MARK: - Section 7: Other Apps from the Developer
+
+  private var otherAppsSection: some View {
+    Section("Other Apps from the Developer") {
+      OtherAppsView()
+    }
   }
 
   // MARK: - Actions

@@ -33,6 +33,7 @@ struct CompatibilityLayerTests {
       symbols.photoStack,
       symbols.videoStack,
       symbols.videoStackFill,
+      symbols.privacyPolicy,
     ]
     for name in names {
       #expect(!name.isEmpty)
@@ -129,6 +130,20 @@ struct CompatibilityLayerTests {
     let controller = UIHostingController(rootView: view)
     controller.loadViewIfNeeded()
     let fittedSize = controller.sizeThatFits(in: CGSize(width: 320, height: 200))
+    #expect(fittedSize.width > 0)
+    #expect(fittedSize.height > 0)
+  }
+
+  @Test("CompatibleShareLink hosts cleanly on MainActor")
+  @MainActor
+  func compatibleShareLinkHostsSafely() throws {
+    let url = try #require(URL(string: "https://github.com/fsareshwala/merge-videos"))
+    let view = CompatibleShareLink(item: url, message: "Check out Merge Videos!") {
+      Label("Share Merge Videos", systemImage: "square.and.arrow.up")
+    }
+    let controller = UIHostingController(rootView: view)
+    controller.loadViewIfNeeded()
+    let fittedSize = controller.sizeThatFits(in: CGSize(width: 320, height: 100))
     #expect(fittedSize.width > 0)
     #expect(fittedSize.height > 0)
   }

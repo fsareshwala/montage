@@ -80,6 +80,14 @@ public nonisolated final class SystemSymbolCompatibility: Sendable {
       "film.fill"
     }
   }
+
+  public var privacyPolicy: String {
+    if #available(iOS 18, *) {
+      "questionmark.text.page"
+    } else {
+      "doc.text"
+    }
+  }
 }
 
 // MARK: - Animation and Toolbar Placement Compatibility
@@ -136,6 +144,51 @@ public struct CompatibleNavigationContainer<Content: View>: View {
       .navigationViewStyle(.stack)
     }
   }
+}
+
+// MARK: - Share Link Compatibility
+
+/// Uses SwiftUI's `ShareLink` on iOS 16+ and falls back to `UIActivityViewController` on iOS 15.
+public struct CompatibleShareLink<Label: View>: View {
+  private let url: URL
+  private let message: String
+  private let label: () -> Label
+  @State private var isPresentingShareSheet = false
+
+  public init(
+    item url: URL,
+    message: String,
+    @ViewBuilder label: @escaping () -> Label
+  ) {
+    self.url = url
+    self.message = message
+    self.label = label
+  }
+
+  public var body: some View {
+    if #available(iOS 16, *) {
+      ShareLink(item: url, message: Text(message), label: label)
+    } else {
+      Button {
+        isPresentingShareSheet = true
+      } label: {
+        label()
+      }
+      .sheet(isPresented: $isPresentingShareSheet) {
+        CompatibleActivityView(activityItems: [message, url])
+      }
+    }
+  }
+}
+
+private struct CompatibleActivityView: UIViewControllerRepresentable {
+  let activityItems: [Any]
+
+  func makeUIViewController(context: Context) -> UIActivityViewController {
+    UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+  }
+
+  func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Content Unavailable Compatibility

@@ -64,3 +64,13 @@ agents must keep this file synchronized with code changes.
   in the library. Strictly opt-in (default OFF) with clear helper text because trimming tail footage
   is destructive if unexpected.
 - **Key Files:** `Shared/AppSettings.swift`, `Shared/VideoMergeEngine.swift`.
+
+### 7. Inline About and Other Apps Sections (Host App)
+
+- **Behavior:** Displays inline `About` (`Privacy Policy`, `Share Merge Videos`, `Report a Bug`,
+  and `Source Code`) and `Other Apps from the Developer` (`Forecash` and `Clean Dial`) sections
+  directly underneath `Uniform Video Length` in the host app `Form`.
+- **Provenance & Rationale:** Mirrors the developer's other open-source iOS apps for transparency,
+  easy issue reporting, and cross-app discovery without requiring a separate modal sheet.
+- **Key Files:** `Merge Videos/ContentView.swift`, `Merge Videos/PrivacyPolicyView.swift`,
+  `Merge Videos/OtherAppsView.swift`, `Shared/UICompatibility.swift`.
