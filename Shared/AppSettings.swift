@@ -1,5 +1,5 @@
+import Combine
 import Foundation
-import Observation
 
 /// Transition styles available between merged video clips.
 public nonisolated enum TransitionStyle: String, CaseIterable, Identifiable, Sendable {
@@ -132,8 +132,7 @@ public nonisolated struct MergeConfiguration: Sendable, Equatable {
 /// Shared observable preferences synchronized between the host app and Share Extension
 /// via the shared App Group UserDefaults suite.
 @MainActor
-@Observable
-public final class AppSettings {
+public final class AppSettings: ObservableObject {
   /// App Group identifier matching both targets' entitlements.
   public nonisolated static let appGroupIdentifier = "group.com.sareshwala.faraaz.mergevideos"
 
@@ -154,37 +153,37 @@ public final class AppSettings {
 
   private let defaults: UserDefaults
 
-  public var transitionStyle: TransitionStyle {
+  @Published public var transitionStyle: TransitionStyle {
     didSet {
       defaults.set(transitionStyle.rawValue, forKey: Keys.transitionStyle)
     }
   }
 
-  public var transitionDuration: TransitionDuration {
+  @Published public var transitionDuration: TransitionDuration {
     didSet {
       defaults.set(transitionDuration.rawValue, forKey: Keys.transitionDuration)
     }
   }
 
-  public var preserveMetadata: Bool {
+  @Published public var preserveMetadata: Bool {
     didSet {
       defaults.set(preserveMetadata, forKey: Keys.preserveMetadata)
     }
   }
 
-  public var deleteSourceClipsAfterMerge: Bool {
+  @Published public var deleteSourceClipsAfterMerge: Bool {
     didSet {
       defaults.set(deleteSourceClipsAfterMerge, forKey: Keys.deleteSourceClipsAfterMerge)
     }
   }
 
-  public var autoTrimEnabled: Bool {
+  @Published public var autoTrimEnabled: Bool {
     didSet {
       defaults.set(autoTrimEnabled, forKey: Keys.autoTrimEnabled)
     }
   }
 
-  public var autoTrimInterval: TrimInterval {
+  @Published public var autoTrimInterval: TrimInterval {
     didSet {
       defaults.set(autoTrimInterval.rawValue, forKey: Keys.autoTrimInterval)
     }

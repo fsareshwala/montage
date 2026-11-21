@@ -8,7 +8,7 @@ struct ShareExtensionView: View {
   let onCancel: () -> Void
   let onComplete: () -> Void
 
-  @State private var settings = AppSettings()
+  @StateObject private var settings = AppSettings()
   @State private var clips: [ClipItem] = []
   @State private var isLoadingClips = true
   @State private var loadedCount = 0

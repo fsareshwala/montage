@@ -6,7 +6,7 @@ import UIKit
 /// All preferences persist immediately to the shared App Group `UserDefaults`
 /// so the Share Extension reads them automatically.
 struct ContentView: View {
-  @State private var settings = AppSettings()
+  @StateObject private var settings = AppSettings()
   @State private var photoAuthStatus: PHAuthorizationStatus = .notDetermined
   @State private var isRequestingAccess = false
 
