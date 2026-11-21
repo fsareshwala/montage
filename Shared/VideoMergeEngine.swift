@@ -89,6 +89,11 @@ public actor VideoMergeEngine {
   /// Brief fade-out applied at the cut point when auto-trim shortens the output.
   private static let autoTrimFadeOutSeconds: TimeInterval = 0.3
 
+  private let assetExporter = VideoAssetExporter.shared
+  private let thumbnailGenerator = VideoThumbnailGenerator.shared
+  private let compositionBuilder = VideoCompositionBuilder.shared
+  private let resourceCompatibility = PhotoAssetResourceCompatibility.shared
+
   public init() {}
 
   // MARK: - Loading Shared Clips
@@ -418,12 +423,12 @@ public actor VideoMergeEngine {
           try? compAudioTrack.insertTimeRange(audioTimeRange, of: sourceAudio, at: cursor)
         }
 
-        let layerInstruction = makeLayerInstruction(
+        let layerInstruction = compositionBuilder.makeLayerInstruction(
           track: compVideoTrack,
           transform: transforms[index],
           at: cursor
         )
-        let instruction = makeVideoInstruction(
+        let instruction = compositionBuilder.makeVideoInstruction(
           timeRange: CMTimeRange(start: cursor, duration: info.duration),
           backgroundColor: blackColor,
           layerInstructions: [layerInstruction]
@@ -522,13 +527,13 @@ public actor VideoMergeEngine {
 
         if CMTimeCompare(passEnd, passStart) > 0 {
           let passRange = CMTimeRange(start: passStart, end: passEnd)
-          let layer = makeLayerInstruction(
+          let layer = compositionBuilder.makeLayerInstruction(
             track: videoTracks[lane],
             transform: transforms[index],
             at: passStart,
             opacity: 1.0
           )
-          let instruction = makeVideoInstruction(
+          let instruction = compositionBuilder.makeVideoInstruction(
             timeRange: passRange,
             backgroundColor: blackColor,
             layerInstructions: [layer]
@@ -562,19 +567,19 @@ public actor VideoMergeEngine {
             break
 
           case .crossDissolve:
-            let fromLayer = makeLayerInstruction(
+            let fromLayer = compositionBuilder.makeLayerInstruction(
               track: fromTrack,
               transform: fromTransform,
               at: transRange.start,
               opacityRamp: (1.0, 0.0, transRange)
             )
-            let toLayer = makeLayerInstruction(
+            let toLayer = compositionBuilder.makeLayerInstruction(
               track: toTrack,
               transform: toTransform,
               at: transRange.start,
               opacityRamp: (0.0, 1.0, transRange)
             )
-            let instruction = makeVideoInstruction(
+            let instruction = compositionBuilder.makeVideoInstruction(
               timeRange: transRange,
               backgroundColor: blackColor,
               layerInstructions: [fromLayer, toLayer]
@@ -588,13 +593,13 @@ public actor VideoMergeEngine {
             let secondHalf = CMTimeRange(start: midTime, end: transRange.end)
 
             if CMTimeCompare(firstHalf.duration, .zero) > 0 {
-              let fromLayer = makeLayerInstruction(
+              let fromLayer = compositionBuilder.makeLayerInstruction(
                 track: fromTrack,
                 transform: fromTransform,
                 at: firstHalf.start,
                 opacityRamp: (1.0, 0.0, firstHalf)
               )
-              let fadeOutInstruction = makeVideoInstruction(
+              let fadeOutInstruction = compositionBuilder.makeVideoInstruction(
                 timeRange: firstHalf,
                 backgroundColor: blackColor,
                 layerInstructions: [fromLayer]
@@ -603,13 +608,13 @@ public actor VideoMergeEngine {
             }
 
             if CMTimeCompare(secondHalf.duration, .zero) > 0 {
-              let toLayer = makeLayerInstruction(
+              let toLayer = compositionBuilder.makeLayerInstruction(
                 track: toTrack,
                 transform: toTransform,
                 at: secondHalf.start,
                 opacityRamp: (0.0, 1.0, secondHalf)
               )
-              let fadeInInstruction = makeVideoInstruction(
+              let fadeInInstruction = compositionBuilder.makeVideoInstruction(
                 timeRange: secondHalf,
                 backgroundColor: blackColor,
                 layerInstructions: [toLayer]
@@ -625,15 +630,15 @@ public actor VideoMergeEngine {
               CGAffineTransform(translationX: renderSize.width, y: 0)
             )
 
-            let fromLayer = makeLayerInstruction(
+            let fromLayer = compositionBuilder.makeLayerInstruction(
               track: fromTrack,
               transformRamp: (fromTransform, fromEndTransform, transRange)
             )
-            let toLayer = makeLayerInstruction(
+            let toLayer = compositionBuilder.makeLayerInstruction(
               track: toTrack,
               transformRamp: (toStartTransform, toTransform, transRange)
             )
-            let instruction = makeVideoInstruction(
+            let instruction = compositionBuilder.makeVideoInstruction(
               timeRange: transRange,
               backgroundColor: blackColor,
               layerInstructions: [toLayer, fromLayer]
@@ -686,7 +691,7 @@ public actor VideoMergeEngine {
       }
     }
 
-    let videoComposition = makeVideoComposition(
+    let videoComposition = compositionBuilder.makeVideoComposition(
       renderSize: renderSize,
       frameDuration: frameDuration,
       instructions: videoInstructions
@@ -725,36 +730,21 @@ public actor VideoMergeEngine {
       try Task.checkCancellation()
       try? FileManager.default.removeItem(at: outputURL)
 
-      guard let session = AVAssetExportSession(asset: composition, presetName: preset) else {
-        lastError = VideoMergeError.exportFailed("Preset \(preset) unavailable.")
-        continue
-      }
-
-      session.videoComposition = videoComposition
-      session.audioMix = audioMix
-      session.shouldOptimizeForNetworkUse = false
-      if let timeRange {
-        session.timeRange = timeRange
-      }
-
-      let progressTask = Task {
-        for await state in session.states(updateInterval: 0.1) {
-          if case .exporting(let progress) = state {
-            onProgress(progress.fractionCompleted)
-          }
-        }
-      }
-
       do {
-        try await session.export(to: outputURL, as: .mov)
-        progressTask.cancel()
-        onProgress(1.0)
+        try await assetExporter.export(
+          composition: composition,
+          presetName: preset,
+          videoComposition: videoComposition,
+          audioMix: audioMix,
+          timeRange: timeRange,
+          outputURL: outputURL,
+          fileType: .mov,
+          onProgress: onProgress
+        )
         return
       } catch is CancellationError {
-        progressTask.cancel()
         throw VideoMergeError.cancelled
       } catch {
-        progressTask.cancel()
         lastError = error
         // Retry with the lighter 1080p preset if the first high-quality attempt failed.
         if attemptIndex == presets.count - 1 {
@@ -940,13 +930,9 @@ public actor VideoMergeEngine {
       if let clipBaseName, !clipBaseName.isEmpty {
         let resources = PHAssetResource.assetResources(for: asset)
         let hasNameMatch = resources.contains { resource in
-          let rawName: String?
-          if #available(iOS 27, *) {
-            rawName = resource.filename
-          } else {
-            rawName = resource.originalFilename
+          guard let rawName = resourceCompatibility.filename(for: resource), !rawName.isEmpty else {
+            return false
           }
-          guard let rawName, !rawName.isEmpty else { return false }
           let candidateName = URL(fileURLWithPath: rawName)
             .deletingPathExtension()
             .lastPathComponent
@@ -1066,16 +1052,11 @@ public actor VideoMergeEngine {
   }
 
   private func generateThumbnail(for asset: AVURLAsset) async -> UIImage? {
-    let generator = AVAssetImageGenerator(asset: asset)
-    generator.appliesPreferredTrackTransform = true
-    generator.maximumSize = Self.thumbnailMaxSize
-    generator.requestedTimeToleranceBefore = CMTime(seconds: 0.5, preferredTimescale: 600)
-    generator.requestedTimeToleranceAfter = CMTime(seconds: 0.5, preferredTimescale: 600)
-
-    guard let result = try? await generator.image(at: .zero) else {
-      return nil
-    }
-    return UIImage(cgImage: result.image)
+    await thumbnailGenerator.generateThumbnail(
+      for: asset,
+      at: .zero,
+      maximumSize: Self.thumbnailMaxSize
+    )
   }
 
   private func extractLocation(from asset: AVURLAsset) async -> CLLocation? {
@@ -1165,123 +1146,5 @@ public actor VideoMergeEngine {
     let trackRange = try await audioTrack.load(.timeRange)
     let effectiveDuration = CMTimeMinimum(trackRange.duration, maxDuration)
     return CMTimeRange(start: .zero, duration: effectiveDuration)
-  }
-
-  // MARK: - iOS 26+ Configuration / iOS 18+ Fallback Builders
-
-  private func makeLayerInstruction(
-    track: AVAssetTrack,
-    transform: CGAffineTransform? = nil,
-    at time: CMTime = .zero,
-    opacity: Float? = nil,
-    opacityRamp: (start: Float, end: Float, range: CMTimeRange)? = nil,
-    transformRamp: (start: CGAffineTransform, end: CGAffineTransform, range: CMTimeRange)? = nil
-  ) -> AVVideoCompositionLayerInstruction {
-    if #available(iOS 26, *) {
-      var config = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
-      if let transform {
-        config.setTransform(transform, at: time)
-      }
-      if let opacity {
-        config.setOpacity(opacity, at: time)
-      }
-      if let opacityRamp {
-        config.addOpacityRamp(
-          AVVideoCompositionLayerInstruction.OpacityRamp(
-            timeRange: opacityRamp.range,
-            start: opacityRamp.start,
-            end: opacityRamp.end
-          )
-        )
-      }
-      if let transformRamp {
-        config.addTransformRamp(
-          AVVideoCompositionLayerInstruction.TransformRamp(
-            timeRange: transformRamp.range,
-            start: transformRamp.start,
-            end: transformRamp.end
-          )
-        )
-      }
-      return AVVideoCompositionLayerInstruction(configuration: config)
-    } else {
-      let layer = AVMutableVideoCompositionLayerInstruction(assetTrack: track)
-      if let transform {
-        layer.setTransform(transform, at: time)
-      }
-      if let opacity {
-        layer.setOpacity(opacity, at: time)
-      }
-      if let opacityRamp {
-        layer.setOpacityRamp(
-          fromStartOpacity: opacityRamp.start,
-          toEndOpacity: opacityRamp.end,
-          timeRange: opacityRamp.range
-        )
-      }
-      if let transformRamp {
-        layer.setTransformRamp(
-          fromStart: transformRamp.start,
-          toEnd: transformRamp.end,
-          timeRange: transformRamp.range
-        )
-      }
-      return layer
-    }
-  }
-
-  private func makeVideoInstruction(
-    timeRange: CMTimeRange,
-    backgroundColor: CGColor,
-    layerInstructions: [AVVideoCompositionLayerInstruction]
-  ) -> AVVideoCompositionInstruction {
-    if #available(iOS 26, *) {
-      let config = AVVideoCompositionInstruction.Configuration(
-        backgroundColor: backgroundColor,
-        enablePostProcessing: true,
-        layerInstructions: layerInstructions,
-        requiredSourceSampleDataTrackIDs: [],
-        timeRange: timeRange
-      )
-      return AVVideoCompositionInstruction(configuration: config)
-    } else {
-      let instruction = AVMutableVideoCompositionInstruction()
-      instruction.timeRange = timeRange
-      instruction.backgroundColor = backgroundColor
-      instruction.layerInstructions = layerInstructions
-      return instruction
-    }
-  }
-
-  private func makeVideoComposition(
-    renderSize: CGSize,
-    frameDuration: CMTime,
-    instructions: [AVVideoCompositionInstruction]
-  ) -> AVVideoComposition {
-    if #available(iOS 26, *) {
-      let config = AVVideoComposition.Configuration(
-        animationTool: nil,
-        colorPrimaries: nil,
-        colorTransferFunction: nil,
-        colorYCbCrMatrix: nil,
-        customVideoCompositorClass: nil,
-        frameDuration: frameDuration,
-        instructions: instructions,
-        outputBufferDescription: nil,
-        perFrameHDRDisplayMetadataPolicy: .propagate,
-        renderScale: 1.0,
-        renderSize: renderSize,
-        sourceSampleDataTrackIDs: [],
-        sourceTrackIDForFrameTiming: kCMPersistentTrackID_Invalid,
-        spatialVideoConfigurations: []
-      )
-      return AVVideoComposition(configuration: config)
-    } else {
-      let videoComposition = AVMutableVideoComposition()
-      videoComposition.renderSize = renderSize
-      videoComposition.frameDuration = frameDuration
-      videoComposition.instructions = instructions
-      return videoComposition
-    }
   }
 }
