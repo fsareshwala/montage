@@ -51,7 +51,7 @@ struct ShareExtensionView: View {
         }
       }
       .background(Color(.systemGroupedBackground))
-      .navigationTitle("Merge Videos")
+      .navigationTitle("Montage")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
