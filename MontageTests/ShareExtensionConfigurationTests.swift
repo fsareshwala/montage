@@ -46,4 +46,34 @@ struct ShareExtensionConfigurationTests {
     #expect(maxMovieCount >= 2)
     #expect(activationRule["NSExtensionActivationSupportsAttachmentsWithMinCount"] == nil)
   }
+
+  @Test("Both host app and ShareExtension bundle a valid PrivacyInfo.xcprivacy manifest")
+  func privacyManifestsPresentAndValid() throws {
+    let extensionBundle = try Bundle.embeddedShareExtension()
+
+    for bundle in [Bundle.main, extensionBundle] {
+      let manifestURL = try #require(
+        bundle.url(forResource: "PrivacyInfo", withExtension: "xcprivacy"),
+        "Missing PrivacyInfo.xcprivacy in \(bundle.bundleURL.lastPathComponent)"
+      )
+      let data = try Data(contentsOf: manifestURL)
+      let plist = try #require(
+        PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+      )
+
+      #expect(plist["NSPrivacyTracking"] as? Bool == false)
+      #expect((plist["NSPrivacyTrackingDomains"] as? [String])?.isEmpty == true)
+      #expect((plist["NSPrivacyCollectedDataTypes"] as? [[String: Any]])?.isEmpty == true)
+
+      let apiTypes = try #require(plist["NSPrivacyAccessedAPITypes"] as? [[String: Any]])
+      let userDefaultsEntry = try #require(
+        apiTypes.first {
+          $0["NSPrivacyAccessedAPIType"] as? String == "NSPrivacyAccessedAPICategoryUserDefaults"
+        }
+      )
+      let reasons = try #require(userDefaultsEntry["NSPrivacyAccessedAPITypeReasons"] as? [String])
+      #expect(reasons.contains("1C8F.1"))
+      #expect(reasons.contains("CA92.1"))
+    }
+  }
 }
