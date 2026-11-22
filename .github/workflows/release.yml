@@ -1,0 +1,208 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: SemVer component to bump (ignored when custom_version is provided)
+        type: choice
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      custom_version:
+        description: Explicit version override (e.g. 1.2.0)
+        type: string
+        required: false
+        default: ""
+      dry_run:
+        description: Preview version bump without committing, tagging, or creating a release
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Bump version, tag, and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure release runs from default branch
+        if: github.ref_name != github.event.repository.default_branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          echo "::error::Releases must be triggered from the ${DEFAULT_BRANCH} branch (got ${GITHUB_REF_NAME})."
+          exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Compute and apply version bump
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+          CUSTOM_VERSION: ${{ inputs.custom_version }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          XCPROJ: montage.xcodeproj/project.xcproj
+          TARGETS: Montage,ShareExtension
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          xcproj_path = Path(os.environ["XCPROJ"])
+          targets = [t.strip() for t in os.environ["TARGETS"].split(",") if t.strip()]
+          bump = os.environ["BUMP"].strip()
+          custom_version = os.environ["CUSTOM_VERSION"].strip().lstrip("v")
+          dry_run = os.environ["DRY_RUN"].lower() == "true"
+
+          text = xcproj_path.read_text(encoding="utf-8")
+
+          # Match each named target's MARKETING_VERSION inside project.xcproj without reformatting it.
+          def target_version_pattern(target_name: str) -> re.Pattern:
+              return re.compile(
+                  r'("name":\s*"' + re.escape(target_name) + r'",\s*'
+                  r'"id":\s*"[^"]+",\s*'
+                  r'"product":\s*"[^"]+",.*?'
+                  r'"MARKETING_VERSION":\s*")([0-9]+\.[0-9]+(?:\.[0-9]+)?)(")',
+                  re.DOTALL,
+              )
+
+          versions = []
+          for target in targets:
+              m = target_version_pattern(target).search(text)
+              if not m:
+                  sys.exit(f"Could not find MARKETING_VERSION for target '{target}' in {xcproj_path}")
+              versions.append(m.group(2))
+
+          if len(set(versions)) != 1:
+              sys.exit(f"Mismatched MARKETING_VERSION across targets {targets}: {versions}")
+          current_version = versions[0]
+
+          # Parse X.Y or X.Y.Z and compute the next X.Y.Z version.
+          cur_m = re.match(r"^(\d+)\.(\d+)(?:\.(\d+))?$", current_version)
+          if not cur_m:
+              sys.exit(f"Current MARKETING_VERSION '{current_version}' is not X.Y or X.Y.Z")
+          major = int(cur_m.group(1))
+          minor = int(cur_m.group(2))
+          patch = int(cur_m.group(3) or 0)
+
+          semver_re = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+          if custom_version:
+              if not semver_re.match(custom_version):
+                  sys.exit(f"custom_version '{custom_version}' must match X.Y.Z (e.g. 1.2.0)")
+              new_version = custom_version
+          elif bump == "major":
+              new_version = f"{major + 1}.0.0"
+          elif bump == "minor":
+              new_version = f"{major}.{minor + 1}.0"
+          elif bump == "patch":
+              new_version = f"{major}.{minor}.{patch + 1}"
+          else:
+              sys.exit(f"Unsupported bump type: {bump}")
+
+          if tuple(map(int, new_version.split("."))) <= (major, minor, patch):
+              sys.exit(
+                  f"New version ({new_version}) must be strictly greater than "
+                  f"current version ({current_version})."
+              )
+
+          tag = f"v{new_version}"
+          existing = subprocess.run(
+              ["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"],
+              capture_output=True,
+              text=True,
+          )
+          if existing.returncode == 0:
+              sys.exit(f"Tag '{tag}' already exists.")
+
+          # Update MARKETING_VERSION strictly within the shippable targets (Montage & ShareExtension).
+          updated = text
+          for target in targets:
+              updated, count = target_version_pattern(target).subn(
+                  lambda m: f"{m.group(1)}{new_version}{m.group(3)}",
+                  updated,
+                  count=1,
+              )
+              if count != 1:
+                  sys.exit(f"Expected 1 replacement for target '{target}', got {count}")
+
+          if not dry_run:
+              xcproj_path.write_text(updated, encoding="utf-8")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"old_version={current_version}\n")
+              out.write(f"new_version={new_version}\n")
+              out.write(f"tag={tag}\n")
+
+          print(f"Version bump: {current_version} -> {new_version} (tag: {tag}, dry_run: {dry_run})")
+          PY
+
+      - name: Commit, tag, and push
+        if: ${{ !inputs.dry_run }}
+        id: push
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add montage.xcodeproj/project.xcproj
+          git commit -m "chore(release): ${TAG}"
+          git tag -a "${TAG}" -m "Release ${TAG}"
+
+          git push origin "HEAD:${DEFAULT_BRANCH}"
+          git push origin "${TAG}"
+
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release create "${TAG}" \
+            --title "${TAG}" \
+            --generate-notes
+
+      - name: Write job summary
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          OLD_VERSION: ${{ steps.version.outputs.old_version }}
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          SHA: ${{ steps.push.outputs.sha }}
+        run: |
+          {
+            if [ "${DRY_RUN}" = "true" ]; then
+              echo "### Dry Run — Release Preview"
+            else
+              echo "### Released ${TAG}"
+            fi
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Previous Version | \`${OLD_VERSION}\` |"
+            echo "| New Version | \`${NEW_VERSION}\` |"
+            echo "| Git Tag | \`${TAG}\` |"
+            if [ -n "${SHA}" ]; then
+              echo "| Commit | \`${SHA}\` |"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

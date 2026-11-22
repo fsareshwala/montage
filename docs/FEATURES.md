@@ -74,3 +74,19 @@ agents must keep this file synchronized with code changes.
   easy issue reporting, and cross-app discovery without requiring a separate modal sheet.
 - **Key Files:** `Montage/ContentView.swift`, `Montage/PrivacyPolicyView.swift`,
   `Montage/OtherAppsView.swift`, `Shared/UICompatibility.swift`.
+
+### 8. Automated Release Versioning & Xcode Cloud Distribution
+
+- **Behavior:** `.github/workflows/release.yml` provides a manual `workflow_dispatch` trigger on
+  the repository's default branch (`patch` / `minor` / `major`, optional `custom_version`, and
+  optional `dry_run`) that bumps `MARKETING_VERSION` for both `Montage` and `ShareExtension` in
+  `montage.xcodeproj/project.xcproj`, commits the bump, creates an annotated `vX.Y.Z` Git tag, and
+  publishes a GitHub Release with auto-generated notes. Pushing the `v*` tag triggers Xcode Cloud
+  to archive and distribute the build while automatically managing monotonically increasing build
+  numbers.
+- **Provenance & Rationale:** Ensures every shipped version maps cleanly to an immutable Git
+  tag/commit, keeps the host app and Share Extension marketing versions synchronized, prevents
+  closed-train App Store Connect rejections on normal pushes, and lets Xcode Cloud handle build
+  numbering natively.
+- **Key Files:** `.github/workflows/release.yml`, `montage.xcodeproj/project.xcproj`,
+  `montage.xcodeproj/xcshareddata/xcodecloud/manifest.json`.
