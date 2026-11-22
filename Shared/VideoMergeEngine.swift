@@ -350,26 +350,27 @@ public actor VideoMergeEngine {
     let composition = AVMutableComposition()
     let blackColor = CGColor(red: 0, green: 0, blue: 0, alpha: 1)
 
-    let (videoInstructions, audioInputParameters): (
-      [AVVideoCompositionInstruction], [AVMutableAudioMixInputParameters]
-    ) =
-      if configuration.transitionStyle == .none {
-        try await buildSequentialTracks(
-          in: composition,
-          trackInfos: trackInfos,
-          transforms: transforms,
-          blackColor: blackColor
-        )
-      } else {
-        try await buildTransitionTracks(
-          in: composition,
-          trackInfos: trackInfos,
-          transforms: transforms,
-          renderSize: renderSize,
-          blackColor: blackColor,
-          configuration: configuration
-        )
-      }
+    let (videoInstructions, audioInputParameters):
+      (
+        [AVVideoCompositionInstruction], [AVMutableAudioMixInputParameters]
+      ) =
+        if configuration.transitionStyle == .none {
+          try await buildSequentialTracks(
+            in: composition,
+            trackInfos: trackInfos,
+            transforms: transforms,
+            blackColor: blackColor
+          )
+        } else {
+          try await buildTransitionTracks(
+            in: composition,
+            trackInfos: trackInfos,
+            transforms: transforms,
+            renderSize: renderSize,
+            blackColor: blackColor,
+            configuration: configuration
+          )
+        }
 
     // Apply optional auto-trim to fixed intervals with a smooth 0.3s audio fade-out at the cut.
     let trimResult = applyAutoTrim(
@@ -537,7 +538,8 @@ public actor VideoMergeEngine {
       cursor = CMTimeAdd(cursor, info.duration)
     }
 
-    let audioInputParameters = compAudioTrack.map { [AVMutableAudioMixInputParameters(track: $0)] } ?? []
+    let audioInputParameters =
+      compAudioTrack.map { [AVMutableAudioMixInputParameters(track: $0)] } ?? []
     return (videoInstructions, audioInputParameters)
   }
 
@@ -1276,8 +1278,8 @@ public actor VideoMergeEngine {
   }
 }
 
-private extension PHAuthorizationStatus {
-  nonisolated var allowsPhotoAccess: Bool {
+extension PHAuthorizationStatus {
+  fileprivate nonisolated var allowsPhotoAccess: Bool {
     return self == .authorized || self == .limited
   }
 }
