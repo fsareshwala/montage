@@ -68,31 +68,27 @@ other editing clutter. There are no ads, watermarks, or subscriptions.
 
 ## How to Use
 
-### 1. One-Time Setup (Host App)
+### 1. One-Time Setup (App)
 
-1. Open the **Montage** app.
-2. Grant **Full Photo Library Access** so Montage can read original dates and GPS metadata, save
-   your combined videos, and optionally prompt to clean up source clips.
-3. _(Optional)_ Customize your defaults in the settings form:
-   - **Transitions:** Pick a transition style (`None`, `Cross Dissolve`, `Dip to Black`, `Slide`)
-     and duration (`0.25s`, `0.5s`, `0.75s`).
-   - **Photo Library Hygiene:** Toggle **Preserve Metadata** and **Post-Merge Source Cleanup**.
-   - **Uniform Video Length:** Toggle **Auto-Trim to Fixed Intervals** and select `15 seconds`,
-     `30 seconds`, or `1 minute`.
+1. Open the Montage app.
+2. Grant Full Photo Library Access so Montage can read original dates and GPS metadata, save your
+   combined videos, and optionally prompt to clean up source clips.
+3. (Optional) Customize your defaults:
+   - Pick a transition style and duration
+   - Select whether Montage should preserve metadata and perform post-merge source clip cleanup.
+   - Select whether Montage should automatically trim the merged video to fixed intervals.
 
-All preferences sync immediately to the Share Extension via a shared App Group container, keeping
-the Share Sheet fast and clutter-free.
+All preferences sync immediately to the share sheet extension in Apple Photos.
 
 ### 2. Join Videos from Apple Photos
 
-1. Open **Photos** and tap **Select**.
-2. Tap **2 or more video clips** you want to combine.
-3. Tap the **Share** button and select **Montage** _(tap **More** if you don't see it in the top row
-   yet)_.
+1. Open Apple Photos and tap Select.
+2. Tap two or more video clips you want to combine.
+3. Tap the share button and select Montage (tap More if you don't see it in the top row yet).
 4. Drag clips up or down to adjust playback order.
-5. Tap **Merge and Save**.
-6. If **Post-Merge Source Cleanup** is enabled, confirm the system prompt to move the original clips
-   to Recently Deleted.
+5. Tap Merge and Save.
+6. If Post-Merge Source Cleanup is enabled, confirm the system prompt to move the original clips to
+   Recently Deleted in Apple Photos.
 
 <!--
 ## Screenshots
