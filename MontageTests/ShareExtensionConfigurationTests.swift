@@ -9,6 +9,8 @@ struct ShareExtensionConfigurationTests {
     #expect(Bundle.main.bundleIdentifier == "com.sareshwala.faraaz.montage")
     #expect(
       Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String == "Montage")
+    #expect(
+      Bundle.main.object(forInfoDictionaryKey: "ITSAppUsesNonExemptEncryption") as? Bool == false)
 
     let usage = try #require(
       Bundle.main.object(forInfoDictionaryKey: "NSPhotoLibraryUsageDescription") as? String
@@ -25,6 +27,7 @@ struct ShareExtensionConfigurationTests {
 
     #expect(extensionBundle.bundleIdentifier == "com.sareshwala.faraaz.montage.share")
     #expect(info["CFBundleDisplayName"] as? String == "Montage")
+    #expect(info["ITSAppUsesNonExemptEncryption"] as? Bool == false)
 
     let usage = try #require(info["NSPhotoLibraryUsageDescription"] as? String)
     #expect(!usage.isEmpty)
