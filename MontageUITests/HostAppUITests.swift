@@ -17,11 +17,13 @@ final class HostAppUITests: XCTestCase {
     )
 
     // Intro and Quick guide sections (Status is hidden when Full Photo Access is granted)
-    XCTAssertTrue(
-      app.staticTexts[
+    let introText = app.staticTexts.matching(
+      NSPredicate(
+        format: "label == %@",
         "Montage is a video joiner. It is built for one job: joining video clips. There are no filters, audio overlays, or other editing clutter."
-      ].exists
-    )
+      )
+    ).firstMatch
+    XCTAssertTrue(introText.exists)
     XCTAssertFalse(app.staticTexts["Full Photo Access Enabled"].exists)
     XCTAssertTrue(app.staticTexts["How It Works"].exists)
     XCTAssertTrue(app.staticTexts["Select 2 or more clips in Photos"].exists)
@@ -37,7 +39,7 @@ final class HostAppUITests: XCTestCase {
       "Post-Merge Source Cleanup",
       "Auto-Trim to Fixed Intervals",
     ] {
-      let toggle = app.switches[toggleTitle]
+      let toggle = toggleSwitch(titled: toggleTitle, in: app)
       scrollIntoView(toggle, in: app)
       XCTAssertTrue(
         toggle.waitForExistence(timeout: 3),
@@ -105,7 +107,7 @@ final class HostAppUITests: XCTestCase {
     selectPickerOption("0.75 seconds", from: "Transition Duration", in: app)
 
     // Scroll to Auto-Trim toggle and turn it ON
-    let autoTrimSwitch = app.switches["Auto-Trim to Fixed Intervals"]
+    let autoTrimSwitch = toggleSwitch(titled: "Auto-Trim to Fixed Intervals", in: app)
     scrollIntoView(autoTrimSwitch, in: app)
     XCTAssertTrue(autoTrimSwitch.waitForExistence(timeout: 3))
     if (autoTrimSwitch.value as? String) == "0" {
@@ -144,12 +146,14 @@ final class HostAppUITests: XCTestCase {
     // Restore clean defaults (None + Auto-Trim OFF)
     selectPickerOption("None", from: "Transition Style", in: app)
 
-    let resetAutoTrimSwitch = app.switches["Auto-Trim to Fixed Intervals"]
+    let resetAutoTrimSwitch = toggleSwitch(titled: "Auto-Trim to Fixed Intervals", in: app)
     scrollIntoView(resetAutoTrimSwitch, in: app)
     if resetAutoTrimSwitch.waitForExistence(timeout: 3),
       (resetAutoTrimSwitch.value as? String) == "1"
     {
-      resetAutoTrimSwitch.tap()
+      resetAutoTrimSwitch.switches.firstMatch.exists
+        ? resetAutoTrimSwitch.switches.firstMatch.tap()
+        : resetAutoTrimSwitch.tap()
     }
   }
 
@@ -159,9 +163,23 @@ final class HostAppUITests: XCTestCase {
     app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch
   }
 
+  private func toggleSwitch(titled title: String, in app: XCUIApplication) -> XCUIElement {
+    app.switches.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
+  }
+
   private func scrollIntoView(_ element: XCUIElement, in app: XCUIApplication) {
-    for _ in 0..<4 where !element.exists || !element.isHittable {
-      app.swipeUp()
+    let startDown = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+    let endDown = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+    for _ in 0..<8 where !element.exists || !element.isHittable {
+      startDown.press(forDuration: 0.05, thenDragTo: endDown)
+    }
+
+    if !element.exists || !element.isHittable {
+      let startUp = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+      let endUp = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+      for _ in 0..<8 where !element.exists || !element.isHittable {
+        startUp.press(forDuration: 0.05, thenDragTo: endUp)
+      }
     }
   }
 
