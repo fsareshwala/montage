@@ -110,7 +110,11 @@ Your videos never leave your device.
   zero third-party analytics, advertising, or crash-reporting SDKs.
 - **Open Source:** Every line of code is publicly auditable in this repository.
 
-## Feedback & Issues
+## Contributing
+
+Contributions are welcome! If you'd like to contribute to this project, please ensure your code
+follows the existing style and includes appropriate tests. For major changes, please open an issue
+first to discuss what you would like to change.
 
 Found a bug or have a feature suggestion?
 [Open an issue on GitHub](https://github.com/fsareshwala/montage/issues).
