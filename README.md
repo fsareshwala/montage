@@ -8,8 +8,6 @@ clips without opening a full timeline editor. Select your clips in Apple Photos,
 quick drag, and save a unified video back to your library with its original capture date, GPS
 location, and optional cleanup of the original clips handled automatically.
 
----
-
 ## The Problem
 
 Capturing an event, trip, or everyday moment often results in a collection of short 15–30 second
@@ -38,16 +36,6 @@ Everything else—orientation normalization, transitions, uniform-length trimmin
 GPS metadata preservation, and optional source clip cleanup—is taken care of automatically based on
 your saved preferences.
 
-```mermaid
-flowchart LR
-    A["Select 2–30 clips in Photos"] --> B["Tap Share → Montage"]
-    B --> C["Drag to Reorder"]
-    C --> D["Tap Merge and Save"]
-    D --> E["Saved with original date, GPS & optional cleanup"]
-```
-
----
-
 ## How Montage Stands Out
 
 Most iOS video-joining apps are built as standalone editors with ads, watermarks, or
@@ -63,8 +51,6 @@ purpose-built for a clean, chronological Photos library:
 | **Mixed Orientations**   | Locks canvas to the first clip and fits portrait/landscape clips without stretching or cropping | Often crops, stretches, or rotates mismatched clips       |
 | **Uniform Video Length** | Optional auto-trim to fixed intervals (`15s`, `30s`, `1m`) with audio fade-out                  | Manual timeline trimming required                         |
 | **Privacy & Pricing**    | 100% on-device, open source, no ads, no analytics, no subscriptions                             | Often freemium, watermarked, or ad-supported              |
-
----
 
 ## Features
 
@@ -86,8 +72,6 @@ purpose-built for a clean, chronological Photos library:
   audio fade-out. Videos shorter than one interval are left untouched.
 - **Native Apple Design:** Built with SwiftUI, Dynamic Type, monospaced timers, haptic feedback, and
   iOS 26+ Liquid Glass styling with native fallbacks all the way back to iOS 15.
-
----
 
 ## How to Use
 
@@ -127,8 +111,6 @@ Add screenshots to `docs/screenshots/` and uncomment this section to showcase th
 | ![Host App Settings](docs/screenshots/settings.png) | ![Share Sheet](docs/screenshots/share-sheet.png) | ![Reorder and Merge](docs/screenshots/reorder-merge.png) |
 -->
 
----
-
 ## Privacy
 
 Your videos never leave your device.
@@ -138,8 +120,6 @@ Your videos never leave your device.
 - **No Data Collection:** Montage makes no network requests, collects no personal data, and includes
   zero third-party analytics, advertising, or crash-reporting SDKs.
 - **Open Source:** Every line of code is publicly auditable in this repository.
-
----
 
 ## Feedback & Issues
 
