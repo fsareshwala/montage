@@ -48,3 +48,20 @@ Detailed feature behavior, user rationale, and implementation history live in `d
   1. **What changed** (UI, settings keys, video engine behavior).
   2. **Provenance & Rationale** (why the user requested it and any edge-case decisions made).
   3. **Files touched**.
+
+## 5. Coding Style Guide (MANDATORY)
+
+All Swift code in this repository must follow `docs/CODING_STYLE.md`. Before writing or modifying
+Swift code, read `docs/CODING_STYLE.md` and ensure strict compliance—especially with these key
+rules:
+
+- **Explicit `return` on booleans:** Never omit `return` when returning a `Bool` from a function,
+  method, or computed property.
+- **No `!` when returning a boolean:** Do not negate a boolean with `!` in a return statement;
+  explicitly use multi-line `if` / `else` returning `true` and `false`.
+- **No single-line `if` or `guard` statements:** Always place control-flow bodies and closing
+  braces on separate lines.
+- **Blank line after control structures:** Always leave a blank line after the closing `}` of
+  `if`, `guard`, `for`, `while`, `switch`, and `do`/`catch` blocks unless the next line is a
+  closing `}` (or a continuation clause such as `else` or `catch`).
+- **Avoid the ternary operator (`? :`):** Prefer explicit `if` / `else` statements over `? :`.
