@@ -7,7 +7,10 @@ import UIKit
 /// so the Share Extension reads them automatically.
 struct ContentView: View {
   @StateObject private var settings = AppSettings()
-  @State private var photoAuthStatus: PHAuthorizationStatus = .notDetermined
+  @State private var photoAuthStatus: PHAuthorizationStatus =
+    ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    ? .authorized
+    : PHPhotoLibrary.authorizationStatus(for: .readWrite)
   @State private var isRequestingAccess = false
 
   @Environment(\.scenePhase) private var scenePhase
@@ -20,7 +23,10 @@ struct ContentView: View {
   var body: some View {
     CompatibleNavigationContainer {
       Form {
-        photoAccessSection
+        introSection
+        if needsFullAccessBanner {
+          photoAccessSection
+        }
         howItWorksSection
         transitionsSection
         hygieneSection
@@ -52,15 +58,29 @@ struct ContentView: View {
     }
   }
 
+  // MARK: - Intro
+
+  private var introSection: some View {
+    Section {
+    } header: {
+      Text(
+        "Montage is a video joiner. It is built for one job: joining video clips. There are no filters, audio overlays, or other editing clutter."
+      )
+      .font(.subheadline)
+      .fontWeight(.regular)
+      .foregroundStyle(.secondary)
+      .textCase(nil)
+      .fixedSize(horizontal: false, vertical: true)
+    }
+    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+  }
+
   // MARK: - Section 1: Photo Access Status
 
   private var photoAccessSection: some View {
     Section("Status") {
       photoAccessStatusRow
-
-      if needsFullAccessBanner {
-        fullAccessBannerButton
-      }
+      fullAccessBannerButton
     }
   }
 
@@ -336,15 +356,16 @@ struct ContentView: View {
         }
       }
 
-      Link(destination: Self.githubURL) {
+      Button {
+        openURL(Self.githubURL)
+      } label: {
         Label {
           VStack(alignment: .leading, spacing: 2) {
             Text("Source Code")
               .font(.body)
-              .foregroundStyle(.primary)
             Text("This app is fully open source. You can read the code on GitHub.")
               .font(.subheadline)
-              .foregroundStyle(.secondary)
+              .foregroundStyle(Color.secondary)
               .fixedSize(horizontal: false, vertical: true)
           }
         } icon: {
@@ -397,6 +418,7 @@ private struct SettingIcon: View {
   var body: some View {
     Image(systemName: systemImage)
       .font(.title3)
+      .imageScale(.medium)
       .foregroundStyle(color)
       .frame(width: 28, height: 28)
       .accessibilityHidden(true)
@@ -492,3 +514,4 @@ private struct QuickGuideStepRow: View {
 #Preview {
   ContentView()
 }
+

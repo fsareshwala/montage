@@ -16,8 +16,13 @@ final class HostAppUITests: XCTestCase {
       "Host app should display the 'Montage' navigation bar."
     )
 
-    // Status and Quick guide sections
-    XCTAssertTrue(app.staticTexts["Status"].exists)
+    // Intro and Quick guide sections (Status is hidden when Full Photo Access is granted)
+    XCTAssertTrue(
+      app.staticTexts[
+        "Montage is a video joiner. It is built for one job: joining video clips. There are no filters, audio overlays, or other editing clutter."
+      ].exists
+    )
+    XCTAssertFalse(app.staticTexts["Full Photo Access Enabled"].exists)
     XCTAssertTrue(app.staticTexts["How It Works"].exists)
     XCTAssertTrue(app.staticTexts["Select 2 or more clips in Photos"].exists)
     XCTAssertTrue(app.staticTexts["Tap Share and pick Montage"].exists)
