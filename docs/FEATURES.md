@@ -75,18 +75,19 @@ agents must keep this file synchronized with code changes.
 - **Key Files:** `Montage/ContentView.swift`, `Montage/PrivacyPolicyView.swift`,
   `Montage/OtherAppsView.swift`, `Shared/UICompatibility.swift`.
 
-### 8. Automated Release Versioning & Xcode Cloud Distribution
+### 8. Automated Release Versioning & App Store Connect Submission
 
-- **Behavior:** `.github/workflows/release.yml` provides a manual `workflow_dispatch` trigger on
-  the repository's default branch (`patch` / `minor` / `major`, optional `custom_version`, and
-  optional `dry_run`) that bumps `MARKETING_VERSION` for both `Montage` and `ShareExtension` in
-  `montage.xcodeproj/project.xcproj`, commits the bump, creates an annotated `vX.Y.Z` Git tag, and
-  publishes a GitHub Release with auto-generated notes. Pushing the `v*` tag triggers Xcode Cloud
-  to archive and distribute the build while automatically managing monotonically increasing build
-  numbers.
-- **Provenance & Rationale:** Ensures every shipped version maps cleanly to an immutable Git
-  tag/commit, keeps the host app and Share Extension marketing versions synchronized, prevents
-  closed-train App Store Connect rejections on normal pushes, and lets Xcode Cloud handle build
-  numbering natively.
-- **Key Files:** `.github/workflows/release.yml`, `montage.xcodeproj/project.xcproj`,
-  `montage.xcodeproj/xcshareddata/xcodecloud/manifest.json`.
+- **Behavior:** `.github/workflows/release.yml` (backed by `.github/scripts/asc_release.py`)
+  provides a one-click `workflow_dispatch` trigger on the repository's default branch (`patch` /
+  `minor` / `major`, optional `whats_new`, optional `custom_version`, and optional `dry_run`).
+  After validating App Store Connect API credentials (`ASC_ISSUER_ID`, `ASC_KEY_ID`,
+  `ASC_PRIVATE_KEY`), it bumps `MARKETING_VERSION` for both `Montage` and `ShareExtension`,
+  commits, tags `vX.Y.Z`, publishes a GitHub Release, creates/updates the matching iOS App Store
+  Connect version and What's New notes, polls until the tag-triggered Xcode Cloud build finishes
+  processing (`VALID`), attaches the build, and submits the version for App Review.
+- **Provenance & Rationale:** Eliminates manual version creation, build attachment, and review
+  submission in App Store Connect while mapping every shipped version to an immutable Git tag and
+  commit, keeping the host app and Share Extension versions synchronized, and letting Xcode Cloud
+  handle build numbering natively.
+- **Key Files:** `.github/workflows/release.yml`, `.github/scripts/asc_release.py`,
+  `montage.xcodeproj/project.xcproj`, `montage.xcodeproj/xcshareddata/xcodecloud/manifest.json`.

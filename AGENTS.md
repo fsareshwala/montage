@@ -15,11 +15,12 @@ Sheet—without opening a timeline editor like iMovie.
   (`com.sareshwala.faraaz.montage.share`)
 - **App Group Container ID:** `group.com.sareshwala.faraaz.montage` (must be enabled in
   **Signing & Capabilities** for both targets)
-- **CI/CD:** `.github/workflows/release.yml` provides a manual `workflow_dispatch` release button
-  that bumps `MARKETING_VERSION` for both `Montage` and `ShareExtension` in
-  `montage.xcodeproj/project.xcproj`, commits, creates an annotated `vX.Y.Z` tag, and publishes a
-  GitHub Release. Xcode Cloud builds/archives on `v*` tag pushes and manages auto-incrementing
-  build numbers automatically.
+- **CI/CD:** `.github/workflows/release.yml` + `.github/scripts/asc_release.py` provide a manual
+  `workflow_dispatch` release button that bumps `MARKETING_VERSION` for both `Montage` and
+  `ShareExtension` in `montage.xcodeproj/project.xcproj`, commits, tags `vX.Y.Z`, publishes a
+  GitHub Release, creates the matching App Store Connect version, waits for the Xcode Cloud build
+  to finish processing, attaches it, and submits for App Review (requires `ASC_ISSUER_ID`,
+  `ASC_KEY_ID`, and `ASC_PRIVATE_KEY` GitHub Secrets).
 
 ## 3. Core Architectural Invariants
 

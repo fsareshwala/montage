@@ -12,13 +12,18 @@ on:
           - patch
           - minor
           - major
+      whats_new:
+        description: "What's New in This Version (defaults to 'Bug fixes and performance improvements.')"
+        type: string
+        required: false
+        default: ""
       custom_version:
         description: Explicit version override (e.g. 1.2.0)
         type: string
         required: false
         default: ""
       dry_run:
-        description: Preview version bump without committing, tagging, or creating a release
+        description: Preview version bump without modifying Git or App Store Connect
         type: boolean
         required: false
         default: false
@@ -32,8 +37,11 @@ concurrency:
 
 jobs:
   release:
-    name: Bump version, tag, and publish release
+    name: Bump version, tag, and submit to App Store Review
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      APP_BUNDLE_ID: com.sareshwala.faraaz.montage
     steps:
       - name: Ensure release runs from default branch
         if: github.ref_name != github.event.repository.default_branch
@@ -152,6 +160,19 @@ jobs:
           print(f"Version bump: {current_version} -> {new_version} (tag: {tag}, dry_run: {dry_run})")
           PY
 
+      - name: Install App Store Connect API dependencies
+        if: ${{ !inputs.dry_run }}
+        run: python3 -m pip install --quiet PyJWT cryptography
+
+      - name: Preflight App Store Connect credentials
+        if: ${{ !inputs.dry_run }}
+        id: asc_preflight
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: python3 .github/scripts/asc_release.py preflight --bundle-id "${APP_BUNDLE_ID}"
+
       - name: Commit, tag, and push
         if: ${{ !inputs.dry_run }}
         id: push
@@ -182,6 +203,41 @@ jobs:
             --title "${TAG}" \
             --generate-notes
 
+      - name: Create App Store Connect version
+        if: ${{ !inputs.dry_run }}
+        id: asc_prepare
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          APP_ID: ${{ steps.asc_preflight.outputs.app_id }}
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          WHATS_NEW: ${{ inputs.whats_new }}
+        run: |
+          python3 .github/scripts/asc_release.py prepare \
+            --app-id "${APP_ID}" \
+            --version "${NEW_VERSION}" \
+            --whats-new "${WHATS_NEW}"
+
+      - name: Wait for Xcode Cloud build and submit for App Review
+        if: ${{ !inputs.dry_run }}
+        id: asc_submit
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          APP_ID: ${{ steps.asc_preflight.outputs.app_id }}
+          VERSION_ID: ${{ steps.asc_prepare.outputs.version_id }}
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          STARTED_AT: ${{ steps.asc_preflight.outputs.started_at }}
+        run: |
+          python3 .github/scripts/asc_release.py submit \
+            --app-id "${APP_ID}" \
+            --version-id "${VERSION_ID}" \
+            --version "${NEW_VERSION}" \
+            --started-at "${STARTED_AT}" \
+            --timeout-minutes 45
+
       - name: Write job summary
         env:
           DRY_RUN: ${{ inputs.dry_run }}
@@ -189,6 +245,8 @@ jobs:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
           TAG: ${{ steps.version.outputs.tag }}
           SHA: ${{ steps.push.outputs.sha }}
+          BUILD_NUMBER: ${{ steps.asc_submit.outputs.build_number }}
+          SUBMISSION_STATE: ${{ steps.asc_submit.outputs.submission_state }}
         run: |
           {
             if [ "${DRY_RUN}" = "true" ]; then
@@ -204,5 +262,11 @@ jobs:
             echo "| Git Tag | \`${TAG}\` |"
             if [ -n "${SHA}" ]; then
               echo "| Commit | \`${SHA}\` |"
+            fi
+            if [ -n "${BUILD_NUMBER}" ]; then
+              echo "| App Store Build | \`${NEW_VERSION} (${BUILD_NUMBER})\` |"
+            fi
+            if [ -n "${SUBMISSION_STATE}" ]; then
+              echo "| App Review Status | \`${SUBMISSION_STATE}\` |"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
