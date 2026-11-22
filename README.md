@@ -3,10 +3,11 @@
 **Combine multiple video clips into a single seamless video, directly from the iOS Photos Share
 Sheet.**
 
-Montage is a lightweight, open-source iOS utility and Share Extension built to join short video
-clips without opening a full timeline editor. Select your clips in Apple Photos, reorder them with a
-quick drag, and save a unified video back to your library with its original capture date, GPS
-location, and optional cleanup of the original clips handled automatically.
+Montage is a lightweight iOS utility app and share sheet extension built to join video clips without
+opening a full timeline editor. Select your clips in Apple Photos, share them to the Montage app,
+reorder them with a quick drag, and save a unified video back to your library with its original
+capture date and GPS location. You can optionally have Montage cleanup the original video clips as
+well to ensure photo library hygiene.
 
 ## The Problem
 
@@ -32,9 +33,9 @@ Montage eliminates every extra step by living inside the iOS Photos Share Sheet:
 2. Tap **Share** and choose **Montage**.
 3. Drag clips to confirm their order and tap **Merge and Save**.
 
-Everything else—orientation normalization, transitions, uniform-length trimming, original date and
-GPS metadata preservation, and optional source clip cleanup—is taken care of automatically based on
-your saved preferences.
+Everything else (i.e. orientation normalization, transitions, uniform length trimming, original date
+and GPS metadata preservation, and optional source clip cleanup) is taken care of automatically
+based on your saved preferences.
 
 ## How Montage Stands Out
 
