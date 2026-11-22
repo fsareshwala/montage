@@ -293,6 +293,13 @@ extension View {
   public func compatibleFloatingBar(cornerRadius: CGFloat = 24) -> some View {
     modifier(CompatibleFloatingBarModifier(cornerRadius: cornerRadius))
   }
+
+  /// Styles an informational badge inside a navigation bar `ToolbarItem`.
+  /// On iOS 26+, relies on the toolbar item's native Liquid Glass capsule with comfortable
+  /// horizontal padding to avoid double-nested pills. On iOS 15–25, draws a single capsule pill.
+  public func compatibleToolbarPill() -> some View {
+    modifier(CompatibleToolbarPillModifier())
+  }
 }
 
 // MARK: - Private Modifier Implementations
@@ -404,6 +411,25 @@ private struct CompatibleFloatingBarModifier: ViewModifier {
             .strokeBorder(Color(.separator).opacity(0.35), lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.12), radius: 14, y: 4)
+    }
+  }
+}
+
+private struct CompatibleToolbarPillModifier: ViewModifier {
+  func body(content: Content) -> some View {
+    if #available(iOS 26, *) {
+      content
+        .padding(.horizontal, 6)
+        .fixedSize()
+    } else {
+      content
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+          Capsule(style: .continuous)
+            .fill(Color(.tertiarySystemFill))
+        )
+        .fixedSize()
     }
   }
 }

@@ -134,6 +134,24 @@ struct CompatibilityLayerTests {
     #expect(fittedSize.height > 0)
   }
 
+  @Test("compatibleToolbarPill hosts cleanly on MainActor")
+  @MainActor
+  func compatibleToolbarPillHostsSafely() {
+    let view = HStack(spacing: 5) {
+      Text("3 clips")
+      Text("·")
+      Text("0:29")
+    }
+    .font(.footnote.weight(.semibold))
+    .compatibleToolbarPill()
+
+    let controller = UIHostingController(rootView: view)
+    controller.loadViewIfNeeded()
+    let fittedSize = controller.sizeThatFits(in: CGSize(width: 320, height: 100))
+    #expect(fittedSize.width > 0)
+    #expect(fittedSize.height > 0)
+  }
+
   @Test("CompatibleShareLink hosts cleanly on MainActor")
   @MainActor
   func compatibleShareLinkHostsSafely() throws {

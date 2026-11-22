@@ -58,7 +58,6 @@ struct ShareExtensionView: View {
           Button("Cancel") {
             cancelAndDismiss()
           }
-          .frame(minWidth: 44, minHeight: 44)
           .disabled(isCompleted)
         }
 
@@ -96,12 +95,7 @@ struct ShareExtensionView: View {
     .font(.footnote.weight(.semibold))
     .monospacedDigit()
     .foregroundStyle(.secondary)
-    .padding(.horizontal, 10)
-    .padding(.vertical, 5)
-    .background(
-      Capsule(style: .continuous)
-        .fill(Color(.tertiarySystemFill))
-    )
+    .compatibleToolbarPill()
     .accessibilityElement(children: .combine)
     .accessibilityLabel(
       "\(clips.count) clips, total duration \(DurationFormatter.format(estimatedOutputDuration))"
