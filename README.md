@@ -49,18 +49,19 @@ based on your saved preferences.
 | **Auto-Trim to Fixed Intervals**    | Trims excess tail footage to the nearest completed interval (`15 seconds`, `30 seconds`, or `1 minute`) with a smooth `0.3s` audio fade-out. Videos shorter than one interval are left untouched. |
 | **Native Apple Design**             | Built with SwiftUI, Dynamic Type, monospaced timers, haptic feedback, and iOS 26+ Liquid Glass styling with native fallbacks all the way back to iOS 15.                                          |
 
-## How Montage Stands Out
+## Montage Is Not a Video Editor
 
-Most iOS video-joining apps are built as standalone editors with ads, watermarks, or
-subscriptions—and still leave you with stripped metadata and duplicate clips in Photos. Montage is
-purpose-built for a clean, chronological Photos library:
+Most iOS video apps are built as standalone editors with ads, watermarks, or subscriptions, and
+still leave you with stripped metadata and duplicate clips in Apple Photos. Montage is purely a
+video joiner. It is built for one job: joining video clips. There are no filters, audio overlays, or
+other editing clutter. There are no ads, watermarks, or subscriptions.
 
 | Feature                  | Montage                                                                                         | Typical Video Joiners / Editors                           |
 | ------------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | **Workflow**             | Native iOS Photos Share Sheet—no project setup or timeline UI                                   | Open standalone app, create project, import clips, export |
-| **Original Date & Time** | Preserves the first clip's exact capture timestamp                                              | Stamped with the export date, breaking Photos chronology  |
+| **Original Date & Time** | Preserves the first clip's capture timestamp                                                    | Stamped with the export date, breaking Photos chronology  |
 | **GPS Location**         | Preserves the first clip's original GPS coordinates                                             | Usually stripped on export                                |
-| **Source Clip Cleanup**  | Optional safe prompt to delete original clips _only after_ save succeeds                        | Manual search and deletion in Photos                      |
+| **Source Clip Cleanup**  | Optional prompt to delete original clips _only after_ save succeeds                             | Manual search and deletion in Photos                      |
 | **Mixed Orientations**   | Locks canvas to the first clip and fits portrait/landscape clips without stretching or cropping | Often crops, stretches, or rotates mismatched clips       |
 | **Uniform Video Length** | Optional auto-trim to fixed intervals (`15s`, `30s`, `1m`) with audio fade-out                  | Manual timeline trimming required                         |
 | **Privacy & Pricing**    | 100% on-device, open source, no ads, no analytics, no subscriptions                             | Often freemium, watermarked, or ad-supported              |
