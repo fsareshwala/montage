@@ -131,6 +131,7 @@ public nonisolated final class VideoAssetExporter: Sendable {
       if Task.isCancelled {
         throw CancellationError()
       }
+
       throw session.error ?? VideoMergeError.exportFailed("Export did not complete.")
     }
   }
@@ -160,6 +161,7 @@ public nonisolated final class VideoThumbnailGenerator: Sendable {
       guard let result = try? await generator.image(at: time) else {
         return nil
       }
+
       return UIImage(cgImage: result.image)
     } else {
       let generatorBox = UncheckedSendableBox(generator)
@@ -205,9 +207,11 @@ public nonisolated final class VideoCompositionBuilder: Sendable {
       if let transform {
         config.setTransform(transform, at: time)
       }
+
       if let opacity {
         config.setOpacity(opacity, at: time)
       }
+
       if let opacityRamp {
         config.addOpacityRamp(
           AVVideoCompositionLayerInstruction.OpacityRamp(
@@ -217,6 +221,7 @@ public nonisolated final class VideoCompositionBuilder: Sendable {
           )
         )
       }
+
       if let transformRamp {
         config.addTransformRamp(
           AVVideoCompositionLayerInstruction.TransformRamp(
@@ -226,15 +231,18 @@ public nonisolated final class VideoCompositionBuilder: Sendable {
           )
         )
       }
+
       return AVVideoCompositionLayerInstruction(configuration: config)
     } else {
       let layer = AVMutableVideoCompositionLayerInstruction(assetTrack: track)
       if let transform {
         layer.setTransform(transform, at: time)
       }
+
       if let opacity {
         layer.setOpacity(opacity, at: time)
       }
+
       if let opacityRamp {
         layer.setOpacityRamp(
           fromStartOpacity: opacityRamp.start,
@@ -242,6 +250,7 @@ public nonisolated final class VideoCompositionBuilder: Sendable {
           timeRange: opacityRamp.range
         )
       }
+
       if let transformRamp {
         layer.setTransformRamp(
           fromStart: transformRamp.start,
@@ -249,6 +258,7 @@ public nonisolated final class VideoCompositionBuilder: Sendable {
           timeRange: transformRamp.range
         )
       }
+
       return layer
     }
   }

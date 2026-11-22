@@ -60,12 +60,14 @@ enum TestVideoFixtureFactory {
       dateItem.value = ISO8601DateFormatter().string(from: creationDate) as NSString
       metadataItems.append(dateItem)
     }
+
     if let locationISO6709 {
       let locItem = AVMutableMetadataItem()
       locItem.identifier = .commonIdentifierLocation
       locItem.value = locationISO6709 as NSString
       metadataItems.append(locItem)
     }
+
     if !metadataItems.isEmpty {
       writer.metadata = metadataItems
     }
@@ -155,6 +157,7 @@ enum TestVideoFixtureFactory {
           let pts = CMTime(value: CMTimeValue(frameIndex), timescale: fps)
           try await videoReceiver.append(readOnlyFrame, with: pts)
         }
+
         videoReceiver.finish()
       }
 
@@ -178,6 +181,7 @@ enum TestVideoFixtureFactory {
             try await audioReceiver.append(readySample)
             offset += count
           }
+
           audioReceiver.finish()
         }
       }
@@ -207,6 +211,7 @@ enum TestVideoFixtureFactory {
     guard writer.startWriting() else {
       throw FixtureError.writerFailed(writer.error?.localizedDescription ?? "startWriting failed")
     }
+
     writer.startSession(atSourceTime: .zero)
 
     let videoBox = LegacySendableBox(videoInput)
@@ -225,6 +230,7 @@ enum TestVideoFixtureFactory {
               _ = adaptorBox.value.append(bufferBox.value, withPresentationTime: pts)
               frameIndex += 1
             }
+
             if frameIndex >= totalFrames, !finished {
               finished = true
               videoBox.value.markAsFinished()
@@ -260,6 +266,7 @@ enum TestVideoFixtureFactory {
                   _ = audioBox.value.append(sampleBuffer)
                   offset += count
                 }
+
                 if offset >= totalSamples, !finished {
                   finished = true
                   audioBox.value.markAsFinished()
@@ -357,6 +364,7 @@ enum TestVideoFixtureFactory {
     guard status == noErr, let formatDescription else {
       throw FixtureError.audioFormatFailed
     }
+
     return formatDescription
   }
 
@@ -405,6 +413,7 @@ enum TestVideoFixtureFactory {
     guard sampleStatus == noErr, let sampleBuffer else {
       throw FixtureError.audioFormatFailed
     }
+
     return sampleBuffer
   }
 }

@@ -41,6 +41,7 @@ final class PhotosShareSheetUITests: XCTestCase {
         libraryTab.tap()
       }
     }
+
     XCTAssertTrue(
       selectButton.waitForExistence(timeout: 8),
       "Photos 'Select' button should be visible."
@@ -75,6 +76,7 @@ final class PhotosShareSheetUITests: XCTestCase {
         selectedCount += 1
       }
     }
+
     XCTAssertEqual(selectedCount, 2, "Should select 2 videos in Photos.")
 
     // 5. Open the Share Sheet.
@@ -138,6 +140,7 @@ final class PhotosShareSheetUITests: XCTestCase {
     if continueButton.waitForExistence(timeout: 2) {
       continueButton.tap()
     }
+
     let notNowButton = photos.buttons["Not Now"].firstMatch
     if notNowButton.waitForExistence(timeout: 1) {
       notNowButton.tap()
@@ -161,6 +164,7 @@ final class PhotosShareSheetUITests: XCTestCase {
       for element in candidates where element.exists {
         return element
       }
+
       RunLoop.current.run(until: Date().addingTimeInterval(0.25))
     }
 
@@ -178,6 +182,7 @@ final class PhotosShareSheetUITests: XCTestCase {
         for element in candidates where element.exists {
           return element
         }
+
         RunLoop.current.run(until: Date().addingTimeInterval(0.25))
       }
     }
@@ -205,10 +210,17 @@ final class PhotosShareSheetUITests: XCTestCase {
     defer { try? FileManager.default.removeItem(at: tempDir) }
 
     for index in 0..<needed {
+      let color: TestVideoFixtureFactory.RGBAColor
+      if index % 2 == 0 {
+        color = .red
+      } else {
+        color = .blue
+      }
+
       let videoURL = try await TestVideoFixtureFactory.makeVideo(
         in: tempDir,
         filename: "ui_test_video_\(index)_\(UUID().uuidString).mov",
-        color: index % 2 == 0 ? .red : .blue
+        color: color
       )
       try await PHPhotoLibrary.shared().performChanges {
         PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: videoURL)
@@ -232,16 +244,19 @@ final class PhotosShareSheetUITests: XCTestCase {
       if PHPhotoLibrary.authorizationStatus(for: .readWrite) != .notDetermined {
         break
       }
+
       let allowFull = springboard.buttons["Allow Full Access"].firstMatch
       if allowFull.exists {
         allowFull.tap()
         break
       }
+
       let allowAll = springboard.buttons["Allow Access to All Photos"].firstMatch
       if allowAll.exists {
         allowAll.tap()
         break
       }
+
       if #available(iOS 16, *) {
         try? await Task.sleep(for: .milliseconds(200))
       } else {

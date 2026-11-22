@@ -377,12 +377,20 @@ private struct CompatibleSymbolBounceModifier<Value: Equatable>: ViewModifier {
   let value: Value
   @State private var isPulsing = false
 
+  private var pulseScale: CGFloat {
+    if isPulsing {
+      return 1.18
+    } else {
+      return 1.0
+    }
+  }
+
   func body(content: Content) -> some View {
     if #available(iOS 17, *) {
       content.symbolEffect(.bounce, value: value)
     } else {
       content
-        .scaleEffect(isPulsing ? 1.18 : 1.0)
+        .scaleEffect(pulseScale)
         .animation(AnimationCompatibility.shared.snappy(duration: 0.25), value: isPulsing)
         .compatibleOnChange(of: value) { _ in
           isPulsing = true

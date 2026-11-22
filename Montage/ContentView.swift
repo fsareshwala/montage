@@ -7,17 +7,22 @@ import UIKit
 /// so the Share Extension reads them automatically.
 struct ContentView: View {
   @StateObject private var settings = AppSettings()
-  @State private var photoAuthStatus: PHAuthorizationStatus =
-    ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
-    ? .authorized
-    : PHPhotoLibrary.authorizationStatus(for: .readWrite)
+  @State private var photoAuthStatus: PHAuthorizationStatus = Self.initialPhotoAuthStatus()
   @State private var isRequestingAccess = false
 
   @Environment(\.scenePhase) private var scenePhase
   @Environment(\.openURL) private var openURL
 
+  private static func initialPhotoAuthStatus() -> PHAuthorizationStatus {
+    if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+      return .authorized
+    } else {
+      return PHPhotoLibrary.authorizationStatus(for: .readWrite)
+    }
+  }
+
   private var isRunningInPreviews: Bool {
-    ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    return ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
   }
 
   var body: some View {
@@ -27,6 +32,7 @@ struct ContentView: View {
         if needsFullAccessBanner {
           photoAccessSection
         }
+
         howItWorksSection
         transitionsSection
         hygieneSection
@@ -87,11 +93,19 @@ struct ContentView: View {
   private var needsFullAccessBanner: Bool {
     switch photoAuthStatus {
     case .notDetermined, .limited, .denied, .restricted:
-      true
+      return true
     case .authorized:
-      false
+      return false
     @unknown default:
-      true
+      return true
+    }
+  }
+
+  private var fullAccessButtonSymbol: String {
+    if photoAuthStatus == .notDetermined {
+      return SystemSymbolCompatibility.shared.photoAccessRequest
+    } else {
+      return "gearshape"
     }
   }
 
@@ -126,11 +140,9 @@ struct ContentView: View {
             ProgressView()
               .tint(.white)
           } else {
-            Image(
-              systemName: photoAuthStatus == .notDetermined
-                ? SystemSymbolCompatibility.shared.photoAccessRequest : "gearshape"
-            )
+            Image(systemName: fullAccessButtonSymbol)
           }
+
           Text("Enable Full Photo Access")
             .font(.headline)
         }
@@ -390,7 +402,10 @@ struct ContentView: View {
 
   private func refreshState() {
     settings.reload()
-    guard !isRunningInPreviews else { return }
+    guard !isRunningInPreviews else {
+      return
+    }
+
     photoAuthStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
   }
 
@@ -514,4 +529,3 @@ private struct QuickGuideStepRow: View {
 #Preview {
   ContentView()
 }
-

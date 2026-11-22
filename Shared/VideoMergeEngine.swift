@@ -146,6 +146,7 @@ public actor VideoMergeEngine {
       parentDirs.insert(clip.fileURL.deletingLastPathComponent())
       try? FileManager.default.removeItem(at: clip.fileURL)
     }
+
     for dir in parentDirs where dir.path.contains("MontageInput") {
       try? FileManager.default.removeItem(at: dir)
     }
@@ -248,14 +249,18 @@ public actor VideoMergeEngine {
   /// Prompts the user via PhotoKit to delete the individual source clips after a merge is saved.
   /// Returns `true` if deleted, or `false` if there were no matched assets or the user declined.
   public func deleteSourceAssets(localIdentifiers: [String]) async throws -> Bool {
-    guard !localIdentifiers.isEmpty else { return false }
+    guard !localIdentifiers.isEmpty else {
+      return false
+    }
 
     guard PHPhotoLibrary.authorizationStatus(for: .readWrite).allowsPhotoAccess else {
       return false
     }
 
     let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: localIdentifiers, options: nil)
-    guard fetchResult.count > 0 else { return false }
+    guard fetchResult.count > 0 else {
+      return false
+    }
 
     do {
       try await PHPhotoLibrary.shared().performChanges {
@@ -463,8 +468,10 @@ public actor VideoMergeEngine {
       else {
         return []
       }
+
       tracks.append(track)
     }
+
     return tracks
   }
 
@@ -474,7 +481,10 @@ public actor VideoMergeEngine {
     into destinationTrack: AVMutableCompositionTrack?,
     at time: CMTime
   ) async throws {
-    guard let sourceAudio, let destinationTrack else { return }
+    guard let sourceAudio, let destinationTrack else {
+      return
+    }
+
     let audioRange = try await clampedAudioRange(for: sourceAudio, maxDuration: maxDuration)
     try? destinationTrack.insertTimeRange(audioRange, of: sourceAudio, at: time)
   }
@@ -490,8 +500,12 @@ public actor VideoMergeEngine {
     }
 
     let hasAnyAudio = trackInfos.contains { $0.audioTrack != nil }
-    let compAudioTrack =
-      hasAnyAudio ? addTracks(to: composition, mediaType: .audio, count: 1).first : nil
+    let compAudioTrack: AVMutableCompositionTrack?
+    if hasAnyAudio {
+      compAudioTrack = addTracks(to: composition, mediaType: .audio, count: 1).first
+    } else {
+      compAudioTrack = nil
+    }
 
     var videoInstructions: [AVVideoCompositionInstruction] = []
     videoInstructions.reserveCapacity(trackInfos.count)
@@ -541,7 +555,13 @@ public actor VideoMergeEngine {
     }
 
     let hasAnyAudio = trackInfos.contains { $0.audioTrack != nil }
-    let audioTracks = hasAnyAudio ? addTracks(to: composition, mediaType: .audio, count: 2) : []
+    let audioTracks: [AVMutableCompositionTrack]
+    if hasAnyAudio {
+      audioTracks = addTracks(to: composition, mediaType: .audio, count: 2)
+    } else {
+      audioTracks = []
+    }
+
     let audioInputParameters = audioTracks.map(AVMutableAudioMixInputParameters.init(track:))
 
     // Compute clamped per-boundary transition durations.
@@ -560,7 +580,13 @@ public actor VideoMergeEngine {
     clipEnds.reserveCapacity(trackInfos.count)
 
     for (index, info) in trackInfos.enumerated() {
-      let start = index == 0 ? .zero : CMTimeSubtract(clipEnds[index - 1], transitionDurations[index - 1])
+      let start: CMTime
+      if index == 0 {
+        start = .zero
+      } else {
+        start = CMTimeSubtract(clipEnds[index - 1], transitionDurations[index - 1])
+      }
+
       let end = CMTimeAdd(start, info.duration)
       clipStarts.append(start)
       clipEnds.append(end)
@@ -568,10 +594,18 @@ public actor VideoMergeEngine {
       let lane = index % 2
       let sourceRange = CMTimeRange(start: .zero, duration: info.duration)
       try videoTracks[lane].insertTimeRange(sourceRange, of: info.videoTrack, at: start)
+
+      let destinationAudioTrack: AVMutableCompositionTrack?
+      if audioTracks.count == 2 {
+        destinationAudioTrack = audioTracks[lane]
+      } else {
+        destinationAudioTrack = nil
+      }
+
       try await insertClampedAudio(
         from: info.audioTrack,
         maxDuration: info.duration,
-        into: audioTracks.count == 2 ? audioTracks[lane] : nil,
+        into: destinationAudioTrack,
         at: start
       )
     }
@@ -580,8 +614,19 @@ public actor VideoMergeEngine {
     var videoInstructions: [AVVideoCompositionInstruction] = []
     for index in 0..<trackInfos.count {
       let lane = index % 2
-      let passStart = (index == 0) ? .zero : clipEnds[index - 1]
-      let passEnd = (index == trackInfos.count - 1) ? clipEnds[index] : clipStarts[index + 1]
+      let passStart: CMTime
+      if index == 0 {
+        passStart = .zero
+      } else {
+        passStart = clipEnds[index - 1]
+      }
+
+      let passEnd: CMTime
+      if index == trackInfos.count - 1 {
+        passEnd = clipEnds[index]
+      } else {
+        passEnd = clipStarts[index + 1]
+      }
 
       if CMTimeCompare(passEnd, passStart) > 0 {
         let passRange = CMTimeRange(start: passStart, end: passEnd)
@@ -610,9 +655,14 @@ public actor VideoMergeEngine {
       }
 
       // Transition between clip `index` and clip `index + 1`.
-      guard index < trackInfos.count - 1 else { continue }
+      guard index < trackInfos.count - 1 else {
+        continue
+      }
+
       let transDuration = transitionDurations[index]
-      guard CMTimeCompare(transDuration, .zero) > 0 else { continue }
+      guard CMTimeCompare(transDuration, .zero) > 0 else {
+        continue
+      }
 
       let transRange = CMTimeRange(start: clipStarts[index + 1], duration: transDuration)
       let nextLane = (index + 1) % 2
@@ -690,7 +740,10 @@ public actor VideoMergeEngine {
         (toTrack, toTransform, 0.0, 1.0, CMTimeRange(start: midTime, end: timeRange.end)),
       ]
       return halves.compactMap { track, transform, startOpacity, endOpacity, range in
-        guard CMTimeCompare(range.duration, .zero) > 0 else { return nil }
+        guard CMTimeCompare(range.duration, .zero) > 0 else {
+          return nil
+        }
+
         let layer = compositionBuilder.makeLayerInstruction(
           track: track,
           transform: transform,
@@ -753,6 +806,7 @@ public actor VideoMergeEngine {
       for params in audioInputParameters {
         params.setVolumeRamp(fromStartVolume: 1.0, toEndVolume: 0.0, timeRange: fadeRange)
       }
+
       appliedAudioFade = true
     }
 
@@ -809,9 +863,11 @@ public actor VideoMergeEngine {
     if current.allowsPhotoAccess {
       return true
     }
+
     guard current == .notDetermined else {
       return false
     }
+
     return await PHPhotoLibrary.requestAuthorization(for: .readWrite).allowsPhotoAccess
   }
 
@@ -836,6 +892,7 @@ public actor VideoMergeEngine {
         if let creationDate {
           creationRequest.creationDate = creationDate
         }
+
         if let location {
           creationRequest.location = location
         }
@@ -850,7 +907,9 @@ public actor VideoMergeEngine {
   /// Matches shared video files back to their `PHAsset`s in the Photo Library using capture timestamp,
   /// duration, pixel dimensions, and original filename when available.
   private func resolvePhotoAssets(for clips: [ClipItem]) -> [ClipItem] {
-    guard !clips.isEmpty else { return clips }
+    guard !clips.isEmpty else {
+      return clips
+    }
 
     let fetchOptions = PHFetchOptions()
     fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
@@ -875,7 +934,9 @@ public actor VideoMergeEngine {
     }
 
     let fetchResult = PHAsset.fetchAssets(with: .video, options: fetchOptions)
-    guard fetchResult.count > 0 else { return clips }
+    guard fetchResult.count > 0 else {
+      return clips
+    }
 
     var candidateAssets: [PHAsset] = []
     candidateAssets.reserveCapacity(fetchResult.count)
@@ -933,7 +994,9 @@ public actor VideoMergeEngine {
 
     for asset in candidates where !claimed.contains(asset.localIdentifier) {
       let durationDelta = abs(asset.duration - clip.duration)
-      guard durationDelta <= 0.6 else { continue }
+      guard durationDelta <= 0.6 else {
+        continue
+      }
 
       var score = 0
 
@@ -975,6 +1038,7 @@ public actor VideoMergeEngine {
           guard let rawName = resourceCompatibility.filename(for: resource), !rawName.isEmpty else {
             return false
           }
+
           let candidateName = URL(fileURLWithPath: rawName)
             .deletingPathExtension()
             .lastPathComponent
@@ -993,7 +1057,11 @@ public actor VideoMergeEngine {
     }
 
     // Require a reasonable confidence threshold to avoid mis-matching unrelated clips.
-    return bestScore >= 40 ? bestAsset : nil
+    if bestScore >= 40 {
+      return bestAsset
+    } else {
+      return nil
+    }
   }
 
   // MARK: - NSItemProvider Extraction Helpers
@@ -1001,7 +1069,10 @@ public actor VideoMergeEngine {
   private func extractMovieProviders(from extensionItems: [NSExtensionItem]) -> [NSItemProvider] {
     var providers: [NSItemProvider] = []
     for item in extensionItems {
-      guard let attachments = item.attachments else { continue }
+      guard let attachments = item.attachments else {
+        continue
+      }
+
       for provider in attachments {
         if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
           || provider.hasItemConformingToTypeIdentifier(UTType.video.identifier)
@@ -1010,6 +1081,7 @@ public actor VideoMergeEngine {
         }
       }
     }
+
     return providers
   }
 
@@ -1018,10 +1090,12 @@ public actor VideoMergeEngine {
     index: Int,
     destinationDirectory: URL
   ) async throws -> ClipItem? {
-    let typeIdentifier =
-      provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
-      ? UTType.movie.identifier
-      : UTType.video.identifier
+    let typeIdentifier: String
+    if provider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
+      typeIdentifier = UTType.movie.identifier
+    } else {
+      typeIdentifier = UTType.video.identifier
+    }
 
     let copiedURL = try await copyFileRepresentation(
       from: provider,
@@ -1069,12 +1143,19 @@ public actor VideoMergeEngine {
           continuation.resume(throwing: error)
           return
         }
+
         guard let sourceURL else {
           continuation.resume(throwing: VideoMergeError.unreadableVideo)
           return
         }
 
-        let fileExtension = sourceURL.pathExtension.isEmpty ? "mov" : sourceURL.pathExtension
+        let fileExtension: String
+        if sourceURL.pathExtension.isEmpty {
+          fileExtension = "mov"
+        } else {
+          fileExtension = sourceURL.pathExtension
+        }
+
         let baseName = sourceURL.deletingPathExtension().lastPathComponent
         let destinationURL =
           destinationDirectory
@@ -1084,6 +1165,7 @@ public actor VideoMergeEngine {
           if FileManager.default.fileExists(atPath: destinationURL.path) {
             try FileManager.default.removeItem(at: destinationURL)
           }
+
           try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
           continuation.resume(returning: destinationURL)
         } catch {
@@ -1105,6 +1187,7 @@ public actor VideoMergeEngine {
     guard let metadata = try? await asset.load(.commonMetadata) else {
       return nil
     }
+
     let locationItems = AVMetadataItem.metadataItems(
       from: metadata,
       filteredByIdentifier: .commonIdentifierLocation
@@ -1112,6 +1195,7 @@ public actor VideoMergeEngine {
     guard let isoString = try? await locationItems.first?.load(.stringValue) else {
       return nil
     }
+
     return Self.parseISO6709Location(isoString)
   }
 
@@ -1178,6 +1262,7 @@ public actor VideoMergeEngine {
     } else {
       clampedFPS = 30
     }
+
     return CMTime(value: 1, timescale: clampedFPS)
   }
 
@@ -1193,7 +1278,6 @@ public actor VideoMergeEngine {
 
 private extension PHAuthorizationStatus {
   nonisolated var allowsPhotoAccess: Bool {
-    self == .authorized || self == .limited
+    return self == .authorized || self == .limited
   }
 }
-

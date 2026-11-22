@@ -23,12 +23,19 @@ struct ShareExtensionView: View {
   private let engine = VideoMergeEngine()
 
   private var isMerging: Bool {
-    guard let mergePhase else { return false }
-    return mergePhase != .completed
+    guard let mergePhase else {
+      return false
+    }
+
+    if mergePhase == .completed {
+      return false
+    } else {
+      return true
+    }
   }
 
   private var isCompleted: Bool {
-    mergePhase == .completed
+    return mergePhase == .completed
   }
 
   private var configuration: MergeConfiguration {
@@ -37,6 +44,14 @@ struct ShareExtensionView: View {
 
   private var estimatedOutputDuration: TimeInterval {
     configuration.estimatedOutputDuration(for: clips.map(\.duration))
+  }
+
+  private var clipCountLabel: String {
+    if clips.count == 1 {
+      return "\(clips.count) clip"
+    } else {
+      return "\(clips.count) clips"
+    }
   }
 
   var body: some View {
@@ -87,7 +102,7 @@ struct ShareExtensionView: View {
 
   private var summaryPill: some View {
     HStack(spacing: 5) {
-      Text("\(clips.count) \(clips.count == 1 ? "clip" : "clips")")
+      Text(clipCountLabel)
       Text("·")
         .foregroundStyle(.tertiary)
       Text(DurationFormatter.format(estimatedOutputDuration))
@@ -281,7 +296,9 @@ struct ShareExtensionView: View {
   }
 
   private func startMerge() {
-    guard clips.count >= 2, !isMerging, !isCompleted else { return }
+    guard clips.count >= 2, !isMerging, !isCompleted else {
+      return
+    }
 
     settings.reload()
     let currentClips = clips

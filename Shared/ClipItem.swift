@@ -67,14 +67,17 @@ public nonisolated struct ClipItem: Identifiable, Sendable {
 
 nonisolated extension ClipItem: Equatable {
   public static func == (lhs: ClipItem, rhs: ClipItem) -> Bool {
-    lhs.id == rhs.id
+    return lhs.id == rhs.id
   }
 }
 
 /// Formats clip and montage durations consistently across the app and extension.
 public nonisolated enum DurationFormatter {
   public static func format(_ seconds: TimeInterval) -> String {
-    guard seconds.isFinite, seconds >= 0 else { return "0:00" }
+    guard seconds.isFinite, seconds >= 0 else {
+      return "0:00"
+    }
+
     let totalSeconds = Int(seconds.rounded())
     let hours = totalSeconds / 3600
     let minutes = (totalSeconds % 3600) / 60

@@ -126,7 +126,10 @@ public nonisolated struct MergeConfiguration: Sendable, Equatable {
     between firstDuration: TimeInterval,
     and secondDuration: TimeInterval
   ) -> TimeInterval {
-    guard transitionStyle != .none, transitionDuration > 0 else { return 0 }
+    guard transitionStyle != .none, transitionDuration > 0 else {
+      return 0
+    }
+
     let maxAllowed = min(firstDuration, secondDuration) * 0.45
     return max(0, min(transitionDuration, maxAllowed))
   }
@@ -134,15 +137,23 @@ public nonisolated struct MergeConfiguration: Sendable, Equatable {
   /// Returns the floored auto-trim target duration when auto-trim is enabled and
   /// `duration` reaches at least one completed interval, or `nil` otherwise.
   public func trimmedDuration(for duration: TimeInterval) -> TimeInterval? {
-    guard autoTrimEnabled else { return nil }
+    guard autoTrimEnabled else {
+      return nil
+    }
+
     let interval = autoTrimInterval.seconds
-    guard interval > 0, duration >= interval else { return nil }
+    guard interval > 0, duration >= interval else {
+      return nil
+    }
+
     return floor(duration / interval) * interval
   }
 
   /// Estimates the final output video duration given an ordered list of clip durations.
   public func estimatedOutputDuration(for clipDurations: [TimeInterval]) -> TimeInterval {
-    guard !clipDurations.isEmpty else { return 0 }
+    guard !clipDurations.isEmpty else {
+      return 0
+    }
 
     var total = clipDurations.reduce(0, +)
 
@@ -240,13 +251,19 @@ public final class AppSettings: ObservableObject {
       ?? .none
 
     let storedDuration = defaults.double(forKey: Keys.transitionDuration)
-    let transitionDuration =
-      (storedDuration > 0 ? TransitionDuration(rawValue: storedDuration) : nil) ?? .medium
+    let transitionDuration: TransitionDuration
+    if storedDuration > 0, let parsedDuration = TransitionDuration(rawValue: storedDuration) {
+      transitionDuration = parsedDuration
+    } else {
+      transitionDuration = .medium
+    }
 
-    let preserveMetadata =
-      defaults.object(forKey: Keys.preserveMetadata) != nil
-      ? defaults.bool(forKey: Keys.preserveMetadata)
-      : true
+    let preserveMetadata: Bool
+    if defaults.object(forKey: Keys.preserveMetadata) != nil {
+      preserveMetadata = defaults.bool(forKey: Keys.preserveMetadata)
+    } else {
+      preserveMetadata = true
+    }
 
     let deleteSourceClipsAfterMerge = defaults.bool(forKey: Keys.deleteSourceClipsAfterMerge)
     let autoTrimEnabled = defaults.bool(forKey: Keys.autoTrimEnabled)
@@ -273,6 +290,7 @@ public final class AppSettings: ObservableObject {
     } else {
       suite = UserDefaults(suiteName: Self.appGroupIdentifier) ?? .standard
     }
+
     self.defaults = suite
 
     let stored = Self.loadStoredValues(from: suite)
@@ -290,18 +308,23 @@ public final class AppSettings: ObservableObject {
     if transitionStyle != stored.transitionStyle {
       transitionStyle = stored.transitionStyle
     }
+
     if transitionDuration != stored.transitionDuration {
       transitionDuration = stored.transitionDuration
     }
+
     if preserveMetadata != stored.preserveMetadata {
       preserveMetadata = stored.preserveMetadata
     }
+
     if deleteSourceClipsAfterMerge != stored.deleteSourceClipsAfterMerge {
       deleteSourceClipsAfterMerge = stored.deleteSourceClipsAfterMerge
     }
+
     if autoTrimEnabled != stored.autoTrimEnabled {
       autoTrimEnabled = stored.autoTrimEnabled
     }
+
     if autoTrimInterval != stored.autoTrimInterval {
       autoTrimInterval = stored.autoTrimInterval
     }

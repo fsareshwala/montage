@@ -111,9 +111,11 @@ final class HostAppUITests: XCTestCase {
     scrollIntoView(autoTrimSwitch, in: app)
     XCTAssertTrue(autoTrimSwitch.waitForExistence(timeout: 3))
     if (autoTrimSwitch.value as? String) == "0" {
-      autoTrimSwitch.switches.firstMatch.exists
-        ? autoTrimSwitch.switches.firstMatch.tap()
-        : autoTrimSwitch.tap()
+      if autoTrimSwitch.switches.firstMatch.exists {
+        autoTrimSwitch.switches.firstMatch.tap()
+      } else {
+        autoTrimSwitch.tap()
+      }
     }
 
     let trimIntervalPicker = pickerButton(titled: "Trim Interval", in: app)
@@ -151,9 +153,11 @@ final class HostAppUITests: XCTestCase {
     if resetAutoTrimSwitch.waitForExistence(timeout: 3),
       (resetAutoTrimSwitch.value as? String) == "1"
     {
-      resetAutoTrimSwitch.switches.firstMatch.exists
-        ? resetAutoTrimSwitch.switches.firstMatch.tap()
-        : resetAutoTrimSwitch.tap()
+      if resetAutoTrimSwitch.switches.firstMatch.exists {
+        resetAutoTrimSwitch.switches.firstMatch.tap()
+      } else {
+        resetAutoTrimSwitch.tap()
+      }
     }
   }
 
