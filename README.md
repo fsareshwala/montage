@@ -37,6 +37,12 @@ Everything else (i.e. orientation normalization, transitions, uniform length tri
 and GPS metadata preservation, and optional source clip cleanup) is taken care of automatically
 based on your saved preferences.
 
+## Screenshots
+
+|                                                                                                                                                           1. Select Clips                                                                                                                                                            |                                                                                                                                                            2. Share to Montage                                                                                                                                                             |                                                                                                                                                           3. Reorder and Merge                                                                                                                                                            |                                                                                                                                                        4. Configure Defaults                                                                                                                                                        |
+| :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="AppStoreScreenshots/iPhone-Dynamic-Island-Medium-1206x2622/Dark/01_photos_select_and_share.png"><img alt="Select clips in Apple Photos and tap Share" src="AppStoreScreenshots/iPhone-Dynamic-Island-Medium-1206x2622/Light/01_photos_select_and_share.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="AppStoreScreenshots/iPhone-Dynamic-Island-Medium-1206x2622/Dark/02_share_sheet_pick_montage.png"><img alt="Choose Montage from the iOS Photos Share Sheet" src="AppStoreScreenshots/iPhone-Dynamic-Island-Medium-1206x2622/Light/02_share_sheet_pick_montage.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="AppStoreScreenshots/iPhone-Dynamic-Island-Medium-1206x2622/Dark/03_montage_share_extension.png"><img alt="Reorder clips and tap Merge and Save in Montage" src="AppStoreScreenshots/iPhone-Dynamic-Island-Medium-1206x2622/Light/03_montage_share_extension.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="AppStoreScreenshots/iPhone-Dynamic-Island-Medium-1206x2622/Dark/04_main_content_view.png"><img alt="Configure Montage default preferences in the host app" src="AppStoreScreenshots/iPhone-Dynamic-Island-Medium-1206x2622/Light/04_main_content_view.png"></picture> |
+
 ## Features
 
 | Feature                             | Details                                                                                                                                                                                           |
@@ -89,16 +95,6 @@ All preferences sync immediately to the share sheet extension in Apple Photos.
 5. Tap Merge and Save.
 6. If Post-Merge Source Cleanup is enabled, confirm the system prompt to move the original clips to
    Recently Deleted in Apple Photos.
-
-<!--
-## Screenshots
-
-Add screenshots to `docs/screenshots/` and uncomment this section to showcase the app:
-
-| Host App Settings | Photos Share Sheet | Reorder & Merge |
-| :---: | :---: | :---: |
-| ![Host App Settings](docs/screenshots/settings.png) | ![Share Sheet](docs/screenshots/share-sheet.png) | ![Reorder and Merge](docs/screenshots/reorder-merge.png) |
--->
 
 ## Privacy
 
