@@ -64,6 +64,7 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           XCPROJ: montage.xcodeproj/project.xcproj
           TARGETS: Montage,ShareExtension
+          TAG_PREFIX: ios/v
         run: |
           python3 - <<'PY'
           import os
@@ -75,7 +76,11 @@ jobs:
           xcproj_path = Path(os.environ["XCPROJ"])
           targets = [t.strip() for t in os.environ["TARGETS"].split(",") if t.strip()]
           bump = os.environ["BUMP"].strip()
-          custom_version = os.environ["CUSTOM_VERSION"].strip().lstrip("v")
+          tag_prefix = os.environ["TAG_PREFIX"]
+          custom_version = os.environ["CUSTOM_VERSION"].strip()
+          if custom_version.startswith(tag_prefix):
+              custom_version = custom_version[len(tag_prefix):]
+          custom_version = custom_version.lstrip("v")
           dry_run = os.environ["DRY_RUN"].lower() == "true"
 
           text = xcproj_path.read_text(encoding="utf-8")
@@ -129,7 +134,7 @@ jobs:
                   f"current version ({current_version})."
               )
 
-          tag = f"v{new_version}"
+          tag = f"{tag_prefix}{new_version}"
           existing = subprocess.run(
               ["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"],
               capture_output=True,
@@ -197,10 +202,11 @@ jobs:
         if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           gh release create "${TAG}" \
-            --title "${TAG}" \
+            --title "iOS v${NEW_VERSION}" \
             --generate-notes
 
       - name: Create App Store Connect version

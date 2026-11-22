@@ -82,7 +82,7 @@ agents must keep this file synchronized with code changes.
   `minor` / `major`, optional `whats_new`, optional `custom_version`, and optional `dry_run`).
   After validating App Store Connect API credentials (`ASC_ISSUER_ID`, `ASC_KEY_ID`,
   `ASC_PRIVATE_KEY`), it bumps `MARKETING_VERSION` for both `Montage` and `ShareExtension`,
-  commits, tags `vX.Y.Z`, publishes a GitHub Release, creates/updates the matching iOS App Store
+  commits, tags `ios/vX.Y.Z`, publishes a GitHub Release, creates/updates the matching iOS App Store
   Connect version and What's New notes, polls until the tag-triggered Xcode Cloud build finishes
   processing (`VALID`), attaches the build, and submits the version for App Review.
 - **Provenance & Rationale:** Eliminates manual version creation, build attachment, and review
