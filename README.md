@@ -15,23 +15,21 @@ Capturing an event, trip, or everyday moment often results in a collection of sh
 clips scattered across your Photos library. Turning those clips into a single cohesive video with
 traditional editors like iMovie introduces unnecessary friction:
 
-1. **Multi-step imports and exports:** Opening a separate timeline editor, importing clips into a
-   new project, arranging them, and exporting a copy takes far more effort than the task warrants.
-2. **Broken library chronology and missing locations:** Exported videos typically receive the
-   current date and time and lose their GPS coordinates. If you join clips a day or week later, the
-   resulting video appears at the wrong place in your timeline and requires manual date and location
-   edits.
-3. **Manual library cleanup:** After saving the combined video, you still have to go back into
-   Photos, relocate each original clip, and delete them one by one to avoid clutter and duplicate
-   storage.
+1. Opening a separate timeline editor, importing clips into a new project, arranging them, and
+   exporting a copy takes far more effort than the task warrants.
+2. Exported videos typically receive the current date and time and lose their GPS coordinates. If
+   you join clips a day or week later, the resulting video appears at the wrong place in your
+   timeline and requires manual date and location edits.
+3. After saving the combined video, you still have to go back into Photos, relocate each original
+   clip, and delete them one by one to avoid clutter and duplicate storage.
 
 ## The Solution
 
 Montage eliminates every extra step by living inside the iOS Photos Share Sheet:
 
-1. Select **2 to 30 videos** in Apple Photos.
-2. Tap **Share** and choose **Montage**.
-3. Drag clips to confirm their order and tap **Merge and Save**.
+1. Select 2 to 30 videos in Apple Photos.
+2. Tap Share and choose Montage.
+3. Drag clips to confirm their order and tap Merge and Save.
 
 Everything else (i.e. orientation normalization, transitions, uniform length trimming, original date
 and GPS metadata preservation, and optional source clip cleanup) is taken care of automatically
@@ -39,8 +37,8 @@ based on your saved preferences.
 
 ## Screenshots
 
-| 1. Select Clips | 2. Share to Montage | 3. Reorder and Merge | 4. Configure Defaults |
-| :---: | :---: | :---: | :---: |
+|                                                                                                                                             1. Select Clips                                                                                                                                             |                                                                                                                                            2. Share to Montage                                                                                                                                            |                                                                                                                                              3. Reorder and Merge                                                                                                                                              |                                                                                                                                                4. Configure Defaults                                                                                                                                                 |
+| :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/f0653c8e-47af-4806-b8ee-080f5ccbd739"><img alt="Select clips in Apple Photos and tap Share" src="https://github.com/user-attachments/assets/0359afa6-1032-4b53-90b0-d6fc7933a463" /></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/6ff58ce7-2d7d-4386-8bd3-d5f434675fd9"><img alt="Choose Montage from the iOS Photos Share Sheet" src="https://github.com/user-attachments/assets/7026a01e-dd3f-473f-a6f7-0ba43f706c4a"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a5e7e2c9-36dd-4f33-8e95-a878aa5c4693"><img alt="Reorder clips and tap Merge and Save in Montage" src="https://github.com/user-attachments/assets/927ec1db-ddbf-4751-9533-608ddd0bb6f4"></picture></a> | <picture><source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/6220ed7e-e3e7-4a01-b32c-090340aa3177"><img alt="Configure Montage default preferences in the host app" src="https://github.com/user-attachments/assets/bba2f79b-0ef9-4769-a319-b971a08580a3"></picture></a> |
 
 ## Features
@@ -62,15 +60,15 @@ still leave you with stripped metadata and duplicate clips in Apple Photos. Mont
 video joiner. It is built for one job: joining video clips. There are no filters, audio overlays, or
 other editing clutter. There are no ads, watermarks, or subscriptions.
 
-| Feature                  | Montage                                                                                         | Typical Video Joiners / Editors                           |
-| ------------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| **Workflow**             | Native iOS Photos Share Sheet—no project setup or timeline UI                                   | Open standalone app, create project, import clips, export |
-| **Original Date & Time** | Preserves the first clip's capture timestamp                                                    | Stamped with the export date, breaking Photos chronology  |
-| **GPS Location**         | Preserves the first clip's original GPS coordinates                                             | Usually stripped on export                                |
-| **Source Clip Cleanup**  | Optional prompt to delete original clips _only after_ save succeeds                             | Manual search and deletion in Photos                      |
-| **Mixed Orientations**   | Locks canvas to the first clip and fits portrait/landscape clips without stretching or cropping | Often crops, stretches, or rotates mismatched clips       |
-| **Uniform Video Length** | Optional auto-trim to fixed intervals (`15s`, `30s`, `1m`) with audio fade-out                  | Manual timeline trimming required                         |
-| **Privacy & Pricing**    | 100% on-device, open source, no ads, no analytics, no subscriptions                             | Often freemium, watermarked, or ad-supported              |
+| Montage                                                                                         | Typical Video Joiners / Editors                           |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Native iOS Photos Share Sheet. No project setup or timeline UI.                                 | Open standalone app, create project, import clips, export |
+| Preserves the first clip's capture timestamp                                                    | Stamped with the export date, breaking Photos chronology  |
+| Preserves the first clip's original GPS coordinates                                             | Usually stripped on export                                |
+| Optional prompt to delete original clips _only after_ save succeeds                             | Manual search and deletion in Photos                      |
+| Locks canvas to the first clip and fits portrait/landscape clips without stretching or cropping | Often crops, stretches, or rotates mismatched clips       |
+| Optional auto-trim to fixed intervals (`15s`, `30s`, `1m`) with audio fade-out                  | Manual timeline trimming required                         |
+| 100% on-device, open source, no ads, no analytics, no subscriptions                             | Often freemium, watermarked, or ad-supported              |
 
 ## How to Use
 
@@ -84,7 +82,8 @@ other editing clutter. There are no ads, watermarks, or subscriptions.
    - Select whether Montage should preserve metadata and perform post-merge source clip cleanup.
    - Select whether Montage should automatically trim the merged video to fixed intervals.
 
-All preferences sync immediately to the share sheet extension in Apple Photos.
+All preferences sync immediately to the share sheet extension in Apple Photos. These settings will
+now apply every time you join videos together.
 
 ### 2. Join Videos from Apple Photos
 
@@ -98,13 +97,11 @@ All preferences sync immediately to the share sheet extension in Apple Photos.
 
 ## Privacy
 
-Your videos never leave your device.
-
-- **100% Local Processing:** All composition, transitions, orientation normalization, trimming, and
-  metadata preservation happen locally using Apple's `AVFoundation` and `PhotoKit` frameworks.
-- **No Data Collection:** Montage makes no network requests, collects no personal data, and includes
-  zero third-party analytics, advertising, or crash-reporting SDKs.
-- **Open Source:** Every line of code is publicly auditable in this repository.
+Your videos never leave your device. All composition, transitions, orientation normalization,
+trimming, and metadata preservation happen locally using Apple's `AVFoundation` and `PhotoKit`
+frameworks. Montage makes no network requests, collects no personal data, and includes zero
+third-party analytics or advertising. Every line of code is publicly available in this repository
+for users to audit these privacy claims.
 
 ## Contributing
 
