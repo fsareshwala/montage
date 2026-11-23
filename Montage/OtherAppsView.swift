@@ -13,7 +13,7 @@ struct DeveloperAppInfo: Identifiable {
 struct OtherAppsView: View {
   @Environment(\.openURL) private var openURL
 
-  private let apps: [DeveloperAppInfo] = [
+  static let apps: [DeveloperAppInfo] = [
     DeveloperAppInfo(
       id: "forecash",
       iconName: "forecash",
@@ -33,7 +33,7 @@ struct OtherAppsView: View {
   ]
 
   var body: some View {
-    ForEach(apps) { app in
+    ForEach(Self.apps) { app in
       Button {
         openURL(app.appStoreURL)
       } label: {
