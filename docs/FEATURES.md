@@ -28,8 +28,8 @@ agents must keep this file synchronized with code changes.
   When any subsequent clip does not match the first clip, a non-blocking **Incompatible
   Orientations** warning banner explains the output orientation and black-bar impact, Clip 1 displays
   its reference orientation, and each mismatched row is highlighted with a subtle amber tint, orange
-  order badge and thumbnail border, and warning orientation label. Highlights and banner copy update
-  live as clips are reordered, and **Merge and Save** remains enabled.
+  thumbnail border, and warning orientation label. Highlights and banner copy update live as clips
+  are reordered, and **Merge and Save** remains enabled.
 - **Provenance & Rationale:** Merging portrait and landscape clips together produces letterboxing or
   pillarboxing that looks jarring, even when aspect-normalized. Rather than blocking users from
   merging mixed orientations, surfacing a clear live warning and highlighting the offending clips

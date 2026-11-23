@@ -423,22 +423,6 @@ private struct ClipRowView: View {
   let isOrientationMismatched: Bool
   let showsReferenceOrientation: Bool
 
-  private var orderBadgeForeground: Color {
-    if isOrientationMismatched {
-      return .orange
-    } else {
-      return .secondary
-    }
-  }
-
-  private var orderBadgeBackground: Color {
-    if isOrientationMismatched {
-      return Color.orange.opacity(0.18)
-    } else {
-      return Color(.tertiarySystemFill)
-    }
-  }
-
   private var thumbnailBorderColor: Color {
     if isOrientationMismatched {
       return Color.orange.opacity(0.85)
@@ -457,17 +441,6 @@ private struct ClipRowView: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      // Order badge (1, 2, 3...)
-      Text("\(orderIndex)")
-        .font(.footnote.weight(.bold))
-        .monospacedDigit()
-        .foregroundStyle(orderBadgeForeground)
-        .frame(width: 24, height: 24)
-        .background(
-          Circle()
-            .fill(orderBadgeBackground)
-        )
-
       // Crisp 16:9 thumbnail (80x45pt, continuous 8pt corner radius)
       thumbnailView
         .frame(width: 80, height: 45)
