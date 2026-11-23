@@ -554,4 +554,69 @@ struct VideoMergeEngineTests {
     #expect(abs(loaded[0].duration - 1.0) < 0.25)
     #expect(abs(loaded[1].duration - 1.5) < 0.25)
   }
+
+  @Test("loadClips preserves track transforms so ClipOrientationAudit flags mixed orientations")
+  func loadClipsDetectsMixedOrientationsAndUpdatesAuditOnReorder() async throws {
+    let dir = try makeTempDirectory()
+    defer { try? FileManager.default.removeItem(at: dir) }
+
+    let portraitURL = try await TestVideoFixtureFactory.makeVideo(
+      in: dir,
+      filename: "portrait.mov",
+      size: CGSize(width: 160, height: 90),
+      duration: 1.0,
+      color: .red,
+      transform: CGAffineTransform(rotationAngle: .pi / 2)
+    )
+    let landscapeURL = try await TestVideoFixtureFactory.makeVideo(
+      in: dir,
+      filename: "landscape.mov",
+      size: CGSize(width: 160, height: 90),
+      duration: 1.0,
+      color: .blue,
+      transform: .identity
+    )
+    let portraitSecondURL = try await TestVideoFixtureFactory.makeVideo(
+      in: dir,
+      filename: "portrait_2.mov",
+      size: CGSize(width: 90, height: 160),
+      duration: 1.0,
+      color: .green,
+      transform: .identity
+    )
+
+    let item = NSExtensionItem()
+    item.attachments = [
+      makeMovieItemProvider(url: portraitURL),
+      makeMovieItemProvider(url: landscapeURL),
+      makeMovieItemProvider(url: portraitSecondURL),
+    ]
+
+    let engine = VideoMergeEngine()
+    let loaded = try await engine.loadClips(from: [item])
+    defer { engine.cleanupTemporaryFiles(for: loaded) }
+
+    #expect(loaded.count == 3)
+    #expect(loaded[0].orientation == .portrait)
+    #expect(loaded[1].orientation == .landscape)
+    #expect(loaded[2].orientation == .portrait)
+
+    let initialAudit = try #require(ClipOrientationAudit(clips: loaded))
+    #expect(initialAudit.referenceOrientation == .portrait)
+    #expect(initialAudit.hasMismatches == true)
+    #expect(initialAudit.mismatchCount == 1)
+    #expect(initialAudit.isMismatched(loaded[0]) == false)
+    #expect(initialAudit.isMismatched(loaded[1]) == true)
+    #expect(initialAudit.isMismatched(loaded[2]) == false)
+
+    // Reordering so the landscape clip is first flips the reference orientation and mismatches.
+    let reordered = [loaded[1], loaded[0], loaded[2]]
+    let reorderedAudit = try #require(ClipOrientationAudit(clips: reordered))
+    #expect(reorderedAudit.referenceOrientation == .landscape)
+    #expect(reorderedAudit.hasMismatches == true)
+    #expect(reorderedAudit.mismatchCount == 2)
+    #expect(reorderedAudit.isMismatched(loaded[1]) == false)
+    #expect(reorderedAudit.isMismatched(loaded[0]) == true)
+    #expect(reorderedAudit.isMismatched(loaded[2]) == true)
+  }
 }

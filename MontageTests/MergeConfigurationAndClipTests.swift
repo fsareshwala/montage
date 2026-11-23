@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
+import UIKit
 
 @testable import Montage
 
@@ -165,6 +166,195 @@ struct MergeConfigurationAndClipTests {
     )
     #expect(abs(rotated180.orientedSize.width - 1920) < 0.5)
     #expect(abs(rotated180.orientedSize.height - 1080) < 0.5)
+  }
+
+  @Test("ClipItem.orientation resolves portrait, landscape, square, and zero-size clips")
+  func clipItemOrientation() {
+    let baseURL = URL(fileURLWithPath: "/tmp/sample.mov")
+
+    let landscape = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: CGSize(width: 1920, height: 1080),
+      preferredTransform: .identity
+    )
+    #expect(landscape.orientation == .landscape)
+
+    let rotatedLandscape = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: CGSize(width: 1920, height: 1080),
+      preferredTransform: CGAffineTransform(rotationAngle: .pi)
+    )
+    #expect(rotatedLandscape.orientation == .landscape)
+
+    let portraitCW = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: CGSize(width: 1920, height: 1080),
+      preferredTransform: CGAffineTransform(rotationAngle: .pi / 2)
+    )
+    #expect(portraitCW.orientation == .portrait)
+
+    let portraitCCW = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: CGSize(width: 1920, height: 1080),
+      preferredTransform: CGAffineTransform(rotationAngle: -.pi / 2)
+    )
+    #expect(portraitCCW.orientation == .portrait)
+
+    let nativePortrait = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: CGSize(width: 1080, height: 1920),
+      preferredTransform: .identity
+    )
+    #expect(nativePortrait.orientation == .portrait)
+
+    let square = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: CGSize(width: 1080, height: 1080),
+      preferredTransform: .identity
+    )
+    #expect(square.orientation == .square)
+
+    let nearSquare = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: CGSize(width: 1080.4, height: 1080.0),
+      preferredTransform: .identity
+    )
+    #expect(nearSquare.orientation == .square)
+
+    let zeroSize = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: .zero,
+      preferredTransform: .identity
+    )
+    #expect(zeroSize.orientation == nil)
+
+    let zeroHeight = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: CGSize(width: 1920, height: 0),
+      preferredTransform: .identity
+    )
+    #expect(zeroHeight.orientation == nil)
+
+    for orientation in ClipOrientation.allCases {
+      #expect(!orientation.displayName.isEmpty)
+      #expect(!orientation.proseName.isEmpty)
+      #expect(!orientation.displayName.contains("&"))
+      #expect(!orientation.displayName.localizedCaseInsensitiveContains("outing"))
+      #expect(UIImage(systemName: orientation.symbolName) != nil)
+    }
+  }
+
+  @Test("ClipOrientationAudit uses the first clip as reference and tracks reordered mismatches")
+  func clipOrientationAudit() throws {
+    let baseURL = URL(fileURLWithPath: "/tmp/sample.mov")
+
+    let portrait1 = ClipItem(
+      fileURL: baseURL,
+      duration: 4.0,
+      naturalSize: CGSize(width: 1920, height: 1080),
+      preferredTransform: CGAffineTransform(rotationAngle: .pi / 2)
+    )
+    let portrait2 = ClipItem(
+      fileURL: baseURL,
+      duration: 5.0,
+      naturalSize: CGSize(width: 1080, height: 1920),
+      preferredTransform: .identity
+    )
+    let landscape1 = ClipItem(
+      fileURL: baseURL,
+      duration: 6.0,
+      naturalSize: CGSize(width: 1920, height: 1080),
+      preferredTransform: .identity
+    )
+    let square1 = ClipItem(
+      fileURL: baseURL,
+      duration: 3.0,
+      naturalSize: CGSize(width: 1080, height: 1080),
+      preferredTransform: .identity
+    )
+    let zeroClip = ClipItem(
+      fileURL: baseURL,
+      duration: 2.0,
+      naturalSize: .zero,
+      preferredTransform: .identity
+    )
+
+    // Fewer than 2 clips or unknown first orientation returns nil.
+    #expect(ClipOrientationAudit(clips: []) == nil)
+    #expect(ClipOrientationAudit(clips: [portrait1]) == nil)
+    #expect(ClipOrientationAudit(clips: [zeroClip, portrait1]) == nil)
+
+    // All matching orientations report no mismatches and no warning message.
+    let allPortrait = try #require(ClipOrientationAudit(clips: [portrait1, portrait2]))
+    #expect(allPortrait.referenceOrientation == .portrait)
+    #expect(allPortrait.hasMismatches == false)
+    #expect(allPortrait.mismatchCount == 0)
+    #expect(allPortrait.warningMessage == nil)
+    #expect(allPortrait.isMismatched(portrait1) == false)
+    #expect(allPortrait.isMismatched(portrait2) == false)
+
+    // Subsequent clip with unknown dimensions is ignored safely.
+    let trailingZero = try #require(ClipOrientationAudit(clips: [portrait1, zeroClip]))
+    #expect(trailingZero.hasMismatches == false)
+    #expect(trailingZero.isMismatched(zeroClip) == false)
+    #expect(trailingZero.warningMessage == nil)
+
+    // Portrait first flags only the landscape clip with singular warning copy.
+    let portraitFirst = try #require(
+      ClipOrientationAudit(clips: [portrait1, landscape1, portrait2])
+    )
+    #expect(portraitFirst.referenceOrientation == .portrait)
+    #expect(portraitFirst.hasMismatches == true)
+    #expect(portraitFirst.mismatchCount == 1)
+    #expect(portraitFirst.isMismatched(portrait1) == false)
+    #expect(portraitFirst.isMismatched(landscape1) == true)
+    #expect(portraitFirst.isMismatched(portrait2) == false)
+    let singularWarning = try #require(portraitFirst.warningMessage)
+    #expect(
+      singularWarning
+        == "The first clip sets the output to portrait. 1 clip has a different orientation and will appear with black bars."
+    )
+    #expect(!singularWarning.contains("&"))
+    #expect(!singularWarning.localizedCaseInsensitiveContains("outing"))
+
+    // Reordering so landscape is first flags both portrait clips with plural warning copy.
+    let landscapeFirst = try #require(
+      ClipOrientationAudit(clips: [landscape1, portrait1, portrait2])
+    )
+    #expect(landscapeFirst.referenceOrientation == .landscape)
+    #expect(landscapeFirst.hasMismatches == true)
+    #expect(landscapeFirst.mismatchCount == 2)
+    #expect(landscapeFirst.isMismatched(landscape1) == false)
+    #expect(landscapeFirst.isMismatched(portrait1) == true)
+    #expect(landscapeFirst.isMismatched(portrait2) == true)
+    let pluralWarning = try #require(landscapeFirst.warningMessage)
+    #expect(
+      pluralWarning
+        == "The first clip sets the output to landscape. 2 clips have a different orientation and will appear with black bars."
+    )
+    #expect(!pluralWarning.contains("&"))
+    #expect(!pluralWarning.localizedCaseInsensitiveContains("outing"))
+
+    // Square clips also mismatch against landscape/portrait and vice versa.
+    let squareFirst = try #require(ClipOrientationAudit(clips: [square1, landscape1]))
+    #expect(squareFirst.referenceOrientation == .square)
+    #expect(squareFirst.hasMismatches == true)
+    #expect(squareFirst.mismatchCount == 1)
+    #expect(squareFirst.isMismatched(square1) == false)
+    #expect(squareFirst.isMismatched(landscape1) == true)
+    #expect(
+      squareFirst.warningMessage
+        == "The first clip sets the output to square. 1 clip has a different orientation and will appear with black bars."
+    )
   }
 
   @Test("ClipItem formatting and identity-based equality")
