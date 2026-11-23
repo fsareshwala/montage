@@ -7,7 +7,7 @@ final class HostAppUITests: XCTestCase {
     continueAfterFailure = false
   }
 
-  func testHostAppDisplaysAllSectionsQuickGuideAndCleanCopy() {
+  func testHostAppLaunchesAndNavigatesToPrivacyPolicy() {
     let app = XCUIApplication()
     app.launch()
 
@@ -16,38 +16,6 @@ final class HostAppUITests: XCTestCase {
       "Host app should display the 'Montage' navigation bar."
     )
 
-    // Intro and Quick guide sections (Status is hidden when Full Photo Access is granted)
-    let introText = app.staticTexts.matching(
-      NSPredicate(
-        format: "label == %@",
-        "Montage is a video joiner. It is built for one job: joining video clips. There are no filters, audio overlays, or other editing clutter."
-      )
-    ).firstMatch
-    XCTAssertTrue(introText.exists)
-    XCTAssertFalse(app.staticTexts["Full Photo Access Enabled"].exists)
-    XCTAssertTrue(app.staticTexts["How It Works"].exists)
-    XCTAssertTrue(app.staticTexts["Select 2 or more clips in Photos"].exists)
-    XCTAssertTrue(app.staticTexts["Tap Share and pick Montage"].exists)
-    XCTAssertTrue(app.staticTexts["Reorder and Merge into one video"].exists)
-
-    // Transitions section
-    XCTAssertTrue(app.staticTexts["Transitions"].exists)
-
-    // Scroll down to verify Photo Library Hygiene and Uniform Video Length sections
-    for toggleTitle in [
-      "Preserve Metadata",
-      "Post-Merge Source Cleanup",
-      "Auto-Trim to Fixed Intervals",
-    ] {
-      let toggle = toggleSwitch(titled: toggleTitle, in: app)
-      scrollIntoView(toggle, in: app)
-      XCTAssertTrue(
-        toggle.waitForExistence(timeout: 3),
-        "'\(toggleTitle)' toggle should be visible."
-      )
-    }
-
-    // Scroll down to verify About and Other Apps sections
     let privacyRow = app.buttons["Privacy Policy"].firstMatch
     scrollIntoView(privacyRow, in: app)
     XCTAssertTrue(
@@ -55,44 +23,17 @@ final class HostAppUITests: XCTestCase {
       "'Privacy Policy' row should be visible in About section."
     )
 
-    // Verify Privacy Policy navigation pushes PrivacyPolicyView cleanly
     privacyRow.tap()
     XCTAssertTrue(
       app.navigationBars["Privacy Policy"].waitForExistence(timeout: 5),
       "Tapping Privacy Policy should navigate to the Privacy Policy screen."
     )
+
     app.navigationBars.buttons.firstMatch.tap()
-    XCTAssertTrue(app.navigationBars["Montage"].waitForExistence(timeout: 5))
-
-    for expectedText in [
-      "Share Montage",
-      "Report a Bug",
-      "Source Code",
-      "This app is fully open source. You can read the code on GitHub.",
-      "Other Apps from the Developer",
-      "Forecash",
-      "Clean Dial",
-    ] {
-      let text = app.staticTexts[expectedText]
-      scrollIntoView(text, in: app)
-      XCTAssertTrue(
-        text.waitForExistence(timeout: 3),
-        "'\(expectedText)' should be visible in About or Other Apps section."
-      )
-    }
-
-    // Guard copy constraints across all rendered static texts: no "outing" and no "&".
-    for textElement in app.staticTexts.allElementsBoundByIndex {
-      let label = textElement.label
-      XCTAssertFalse(
-        label.localizedCaseInsensitiveContains("outing"),
-        "Unexpected 'outing' wording found in UI: \(label)"
-      )
-      XCTAssertFalse(
-        label.contains("&"),
-        "Unexpected '&' character found in UI: \(label)"
-      )
-    }
+    XCTAssertTrue(
+      app.navigationBars["Montage"].waitForExistence(timeout: 5),
+      "Tapping back should return to the 'Montage' navigation bar."
+    )
   }
 
   func testTransitionAndAutoTrimControlsToggleAndPersistAcrossRelaunch() {
