@@ -3,6 +3,105 @@ import CoreLocation
 import Foundation
 import UIKit
 
+/// Visual orientation derived from a clip's oriented (post-transform) dimensions.
+public nonisolated enum ClipOrientation: String, Sendable, Equatable, CaseIterable {
+  case portrait
+  case landscape
+  case square
+
+  /// Title-cased label for badges and accessibility descriptions.
+  public var displayName: String {
+    switch self {
+    case .portrait:
+      "Portrait"
+    case .landscape:
+      "Landscape"
+    case .square:
+      "Square"
+    }
+  }
+
+  /// Lowercase label for inline warning prose.
+  public var proseName: String {
+    switch self {
+    case .portrait:
+      "portrait"
+    case .landscape:
+      "landscape"
+    case .square:
+      "square"
+    }
+  }
+
+  /// SF Symbol name representing this frame orientation.
+  public var symbolName: String {
+    switch self {
+    case .portrait:
+      "rectangle.portrait"
+    case .landscape:
+      "rectangle"
+    case .square:
+      "square"
+    }
+  }
+}
+
+/// Evaluates orientation consistency across an ordered list of clips using the first clip
+/// as the reference orientation that defines the merged video's output canvas.
+public nonisolated struct ClipOrientationAudit: Sendable, Equatable {
+  public let referenceOrientation: ClipOrientation
+  public let mismatchedClipIDs: Set<UUID>
+
+  public var hasMismatches: Bool {
+    if mismatchedClipIDs.isEmpty {
+      return false
+    } else {
+      return true
+    }
+  }
+
+  public var mismatchCount: Int {
+    mismatchedClipIDs.count
+  }
+
+  /// User-facing explanation shown when one or more clips differ from the first clip's
+  /// orientation, or `nil` when all clips match.
+  public var warningMessage: String? {
+    guard hasMismatches else {
+      return nil
+    }
+
+    let reference = referenceOrientation.proseName
+    if mismatchCount == 1 {
+      return
+        "The first clip sets the output to \(reference). 1 clip has a different orientation and will appear with black bars."
+    } else {
+      return
+        "The first clip sets the output to \(reference). \(mismatchCount) clips have a different orientation and will appear with black bars."
+    }
+  }
+
+  public func isMismatched(_ clip: ClipItem) -> Bool {
+    return mismatchedClipIDs.contains(clip.id)
+  }
+
+  public init?(clips: [ClipItem]) {
+    guard clips.count >= 2, let referenceOrientation = clips[0].orientation else {
+      return nil
+    }
+
+    var mismatched: Set<UUID> = []
+    for clip in clips.dropFirst() {
+      if let clipOrientation = clip.orientation, clipOrientation != referenceOrientation {
+        mismatched.insert(clip.id)
+      }
+    }
+
+    self.referenceOrientation = referenceOrientation
+    self.mismatchedClipIDs = mismatched
+  }
+}
+
 /// Lightweight representation of a video clip selected for merging.
 public nonisolated struct ClipItem: Identifiable, Sendable {
   public let id: UUID
@@ -52,6 +151,23 @@ public nonisolated struct ClipItem: Identifiable, Sendable {
   /// Display dimensions after applying the video track's `preferredTransform`.
   public var orientedSize: CGSize {
     Self.orientedSize(naturalSize: naturalSize, preferredTransform: preferredTransform)
+  }
+
+  /// Visual orientation after applying the video track's `preferredTransform`, or `nil` for
+  /// zero-dimension clips.
+  public var orientation: ClipOrientation? {
+    let size = orientedSize
+    guard size.width > 0, size.height > 0 else {
+      return nil
+    }
+
+    if abs(size.width - size.height) < 1 {
+      return .square
+    } else if size.width > size.height {
+      return .landscape
+    } else {
+      return .portrait
+    }
   }
 
   /// Human-readable duration string (e.g. `0:24`, `1:05`, `1:02:15`).
