@@ -19,14 +19,24 @@ agents must keep this file synchronized with code changes.
 - **Key Files:** `ShareExtension/ShareViewController.swift`,
   `ShareExtension/ShareExtensionView.swift`, `Shared/VideoMergeEngine.swift`.
 
-### 2. Mixed Orientation & Aspect Ratio Normalization (`VideoMergeEngine`)
+### 2. Mixed Orientation Normalization & Share Sheet Mismatch Warning (`VideoMergeEngine`, `ShareExtensionView`)
 
 - **Behavior:** Reads `preferredTransform` and `naturalSize` from each `AVAsset`, locks composition
   `renderSize` to the first clip's oriented dimensions, and scales/centers subsequent clips to fit
-  without cropping or sideways rotation.
-- **Provenance & Rationale:** Parents frequently switch between portrait and landscape while
-  filming; standard concatenation stretches or rotates mismatched clips.
-- **Key Files:** `Shared/VideoMergeEngine.swift`, `Shared/ClipItem.swift`.
+  without cropping or sideways rotation. On the Share Sheet reordering screen, `ClipOrientationAudit`
+  evaluates all clips against the first clip's orientation (`portrait`, `landscape`, or `square`).
+  When any subsequent clip does not match the first clip, a non-blocking **Incompatible
+  Orientations** warning banner explains the output orientation and black-bar impact, Clip 1 displays
+  its reference orientation, and each mismatched row is highlighted with a subtle amber tint, orange
+  order badge and thumbnail border, and warning orientation label. Highlights and banner copy update
+  live as clips are reordered, and **Merge and Save** remains enabled.
+- **Provenance & Rationale:** Merging portrait and landscape clips together produces letterboxing or
+  pillarboxing that looks jarring, even when aspect-normalized. Rather than blocking users from
+  merging mixed orientations, surfacing a clear live warning and highlighting the offending clips
+  relative to Clip 1 helps users notice accidental selections or reorder clips before saving.
+- **Key Files:** `Shared/VideoMergeEngine.swift`, `Shared/ClipItem.swift`,
+  `ShareExtension/ShareExtensionView.swift`, `MontageTests/MergeConfigurationAndClipTests.swift`,
+  `MontageTests/VideoMergeEngineTests.swift`.
 
 ### 3. Configurable Clip Transitions (Host App Setting)
 

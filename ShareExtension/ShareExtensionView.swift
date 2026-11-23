@@ -46,6 +46,18 @@ struct ShareExtensionView: View {
     configuration.estimatedOutputDuration(for: clips.map(\.duration))
   }
 
+  private var orientationAudit: ClipOrientationAudit? {
+    ClipOrientationAudit(clips: clips)
+  }
+
+  private var hasOrientationMismatches: Bool {
+    guard let orientationAudit else {
+      return false
+    }
+
+    return orientationAudit.hasMismatches
+  }
+
   private var clipCountLabel: String {
     if clips.count == 1 {
       return "\(clips.count) clip"
@@ -175,12 +187,24 @@ struct ShareExtensionView: View {
         }
       }
 
+      if let warningMessage = orientationAudit?.warningMessage {
+        orientationWarningSection(message: warningMessage)
+      }
+
       Section {
         ForEach(Array(clips.enumerated()), id: \.element.id) { index, clip in
-          ClipRowView(orderIndex: index + 1, clip: clip)
-            .moveDisabled(isMerging || isCompleted)
-            .deleteDisabled(true)
-            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 12))
+          let isMismatched = isClipOrientationMismatched(clip)
+          let showsReferenceOrientation = index == 0 && hasOrientationMismatches
+          ClipRowView(
+            orderIndex: index + 1,
+            clip: clip,
+            isOrientationMismatched: isMismatched,
+            showsReferenceOrientation: showsReferenceOrientation
+          )
+          .moveDisabled(isMerging || isCompleted)
+          .deleteDisabled(true)
+          .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 12))
+          .listRowBackground(rowBackground(isMismatched: isMismatched))
         }
         .onMove(perform: moveClips)
       } header: {
@@ -190,6 +214,48 @@ struct ShareExtensionView: View {
     .listStyle(.insetGrouped)
     .environment(\.editMode, .constant(.active))
     .compatibleScrollDisabled(isMerging)
+  }
+
+  private func orientationWarningSection(message: String) -> some View {
+    Section {
+      HStack(alignment: .top, spacing: 10) {
+        Image(systemName: "exclamationmark.triangle.fill")
+          .font(.callout)
+          .foregroundStyle(.orange)
+          .padding(.top, 1)
+          .accessibilityHidden(true)
+
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Incompatible Orientations")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+
+          Text(message)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+      }
+      .padding(.vertical, 2)
+      .listRowBackground(Color.orange.opacity(0.10))
+      .accessibilityElement(children: .combine)
+    }
+  }
+
+  private func isClipOrientationMismatched(_ clip: ClipItem) -> Bool {
+    guard let orientationAudit else {
+      return false
+    }
+
+    return orientationAudit.isMismatched(clip)
+  }
+
+  private func rowBackground(isMismatched: Bool) -> Color? {
+    if isMismatched {
+      return Color.orange.opacity(0.10)
+    } else {
+      return nil
+    }
   }
 
   // MARK: - Floating Bottom Action Bar
@@ -354,6 +420,40 @@ struct ShareExtensionView: View {
 private struct ClipRowView: View {
   let orderIndex: Int
   let clip: ClipItem
+  let isOrientationMismatched: Bool
+  let showsReferenceOrientation: Bool
+
+  private var orderBadgeForeground: Color {
+    if isOrientationMismatched {
+      return .orange
+    } else {
+      return .secondary
+    }
+  }
+
+  private var orderBadgeBackground: Color {
+    if isOrientationMismatched {
+      return Color.orange.opacity(0.18)
+    } else {
+      return Color(.tertiarySystemFill)
+    }
+  }
+
+  private var thumbnailBorderColor: Color {
+    if isOrientationMismatched {
+      return Color.orange.opacity(0.85)
+    } else {
+      return Color(.separator).opacity(0.35)
+    }
+  }
+
+  private var thumbnailBorderWidth: CGFloat {
+    if isOrientationMismatched {
+      return 1.5
+    } else {
+      return 0.5
+    }
+  }
 
   var body: some View {
     HStack(spacing: 12) {
@@ -361,11 +461,11 @@ private struct ClipRowView: View {
       Text("\(orderIndex)")
         .font(.footnote.weight(.bold))
         .monospacedDigit()
-        .foregroundStyle(.secondary)
+        .foregroundStyle(orderBadgeForeground)
         .frame(width: 24, height: 24)
         .background(
           Circle()
-            .fill(Color(.tertiarySystemFill))
+            .fill(orderBadgeBackground)
         )
 
       // Crisp 16:9 thumbnail (80x45pt, continuous 8pt corner radius)
@@ -374,10 +474,10 @@ private struct ClipRowView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
           RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .strokeBorder(Color(.separator).opacity(0.35), lineWidth: 0.5)
+            .strokeBorder(thumbnailBorderColor, lineWidth: thumbnailBorderWidth)
         )
 
-      // Duration and optional capture time
+      // Duration, optional capture time, and orientation indicator when clips have mixed orientations
       VStack(alignment: .leading, spacing: 3) {
         Text(clip.formattedDuration)
           .font(.headline)
@@ -388,6 +488,24 @@ private struct ClipRowView: View {
           Text(captureTime)
             .font(.footnote)
             .foregroundStyle(.secondary)
+        }
+
+        if isOrientationMismatched, let orientation = clip.orientation {
+          HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.triangle.fill")
+              .font(.caption2)
+            Text(orientation.displayName)
+              .font(.caption.weight(.semibold))
+          }
+          .foregroundStyle(.orange)
+        } else if showsReferenceOrientation, let orientation = clip.orientation {
+          HStack(spacing: 4) {
+            Image(systemName: orientation.symbolName)
+              .font(.caption2)
+            Text(orientation.displayName)
+              .font(.caption)
+          }
+          .foregroundStyle(.secondary)
         }
       }
 
@@ -415,10 +533,20 @@ private struct ClipRowView: View {
   }
 
   private var rowAccessibilityLabel: String {
+    var parts = [
+      "Clip \(orderIndex)",
+      "duration \(clip.formattedDuration)",
+    ]
     if let captureTime = clip.formattedCaptureTime {
-      "Clip \(orderIndex), duration \(clip.formattedDuration), recorded at \(captureTime)"
-    } else {
-      "Clip \(orderIndex), duration \(clip.formattedDuration)"
+      parts.append("recorded at \(captureTime)")
     }
+
+    if isOrientationMismatched, let orientation = clip.orientation {
+      parts.append("\(orientation.displayName), different orientation from first clip")
+    } else if showsReferenceOrientation, let orientation = clip.orientation {
+      parts.append("\(orientation.displayName), sets output orientation")
+    }
+
+    return parts.joined(separator: ", ")
   }
 }
