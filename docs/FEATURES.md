@@ -40,11 +40,11 @@ agents must keep this file synchronized with code changes.
 
 ### 3. Configurable Clip Transitions (Host App Setting)
 
-- **Behavior:** `Picker` controls in Host App for transition style (`None` [Default],
-  `Cross Dissolve`, `Dip to Black`, `Slide`) and transition duration (`0.25 seconds`, `0.5 seconds`
-  [Default], `0.75 seconds`) using A/B `AVMutableCompositionTrack` lanes and audio crossfades.
-- **Provenance & Rationale:** Allows subtle polish between clips while defaulting to instant cuts
-  for fastest export speed.
+- **Behavior:** `Picker` control in Host App for transition style (`None` [Default],
+  `Cross Dissolve`, `Dip to Black`, `Slide`) using a fixed `0.5`-second transition duration with
+  A/B `AVMutableCompositionTrack` lanes and audio crossfades.
+- **Provenance & Rationale:** Allows subtle polish between clips while keeping settings minimal
+  (no duration knob) and defaulting to instant cuts for fastest export speed.
 - **Key Files:** `Shared/AppSettings.swift`, `Shared/VideoMergeEngine.swift`.
 
 ### 4. Preserve Metadata (Host App Setting — Default: ON)

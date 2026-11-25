@@ -47,7 +47,7 @@ based on your saved preferences.
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Distraction-Free Share Sheet**    | Reorder clips immediately using native drag handles, preview thumbnails and clip durations, view the live estimated output duration, and export with a single tap.                                |
 | **Mixed Orientation Normalization** | Automatically reads each clip's `preferredTransform` and `naturalSize`, adopts the first clip's oriented canvas, and centers subsequent clips cleanly without distortion.                         |
-| **Configurable Transitions**        | Choose between instant cuts (`None`, default for fastest export) or polished transitions (`Cross Dissolve`, `Dip to Black`, `Slide`) at `0.25s`, `0.5s`, or `0.75s` with smooth audio crossfades. |
+| **Configurable Transitions**        | Choose between instant cuts (`None`, default for fastest export) or polished `0.5s` transitions (`Cross Dissolve`, `Dip to Black`, `Slide`) with smooth audio crossfades.                         |
 | **Preserve Metadata**               | Copies the original capture date, time, and GPS location from the first clip onto the saved video so it stays right where it belongs in your Photos library.                                      |
 | **Post-Merge Source Cleanup**       | Triggers iOS's native deletion confirmation for the original clips _only after_ the combined video has been verified saved.                                                                       |
 | **Auto-Trim to Fixed Intervals**    | Trims excess tail footage to the nearest completed interval (`15 seconds`, `30 seconds`, or `1 minute`) with a smooth `0.3s` audio fade-out. Videos shorter than one interval are left untouched. |
@@ -78,7 +78,7 @@ other editing clutter. There are no ads, watermarks, or subscriptions.
 2. Grant Full Photo Library Access so Montage can read original dates and GPS metadata, save your
    combined videos, and optionally prompt to clean up source clips.
 3. (Optional) Customize your defaults:
-   - Pick a transition style and duration
+   - Pick a transition style.
    - Select whether Montage should preserve metadata and perform post-merge source clip cleanup.
    - Select whether Montage should automatically trim the merged video to fixed intervals.
 
