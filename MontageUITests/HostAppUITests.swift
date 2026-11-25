@@ -43,9 +43,10 @@ final class HostAppUITests: XCTestCase {
 
     // Open Transition Style picker and select Cross Dissolve
     selectPickerOption("Cross Dissolve", from: "Transition Style", in: app)
-
-    // Selecting an animated transition should reveal the duration picker
-    selectPickerOption("0.75 seconds", from: "Transition Duration", in: app)
+    XCTAssertFalse(
+      pickerButton(titled: "Transition Duration", in: app).exists,
+      "Transition Duration picker should not exist; transitions are always 0.5 seconds."
+    )
 
     // Scroll to Auto-Trim toggle and turn it ON
     let autoTrimSwitch = toggleSwitch(titled: "Auto-Trim to Fixed Intervals", in: app)
@@ -77,13 +78,6 @@ final class HostAppUITests: XCTestCase {
     XCTAssertTrue(
       persistedTransitionPicker.label.contains("Cross Dissolve"),
       "Transition Style should persist as Cross Dissolve after relaunch, got: \(persistedTransitionPicker.label)"
-    )
-
-    let persistedDurationPicker = pickerButton(titled: "Transition Duration", in: app)
-    XCTAssertTrue(persistedDurationPicker.waitForExistence(timeout: 3))
-    XCTAssertTrue(
-      persistedDurationPicker.label.contains("0.75 seconds"),
-      "Transition Duration should persist as 0.75 seconds after relaunch, got: \(persistedDurationPicker.label)"
     )
 
     // Restore clean defaults (None + Auto-Trim OFF)

@@ -10,29 +10,20 @@ struct MergeConfigurationAndClipTests {
 
   // MARK: - MergeConfiguration.effectiveTransitionDuration
 
-  @Test("Effective transition duration is zero for instant cut or non-positive duration")
+  @Test("Effective transition duration is zero for instant cut")
   func effectiveTransitionDurationZeroCases() {
     let noneConfig = MergeConfiguration(transitionStyle: .none)
     #expect(noneConfig.effectiveTransitionDuration(between: 5.0, and: 5.0) == 0)
-
-    let zeroDurationConfig = MergeConfiguration(
-      transitionStyle: .crossDissolve,
-      transitionDuration: 0
-    )
-    #expect(zeroDurationConfig.effectiveTransitionDuration(between: 5.0, and: 5.0) == 0)
   }
 
   @Test(
-    "Effective transition duration uses configured value for normal clips and clamps to 45% for short clips"
+    "Effective transition duration uses 0.5s for normal clips and clamps to 45% for short clips"
   )
   func effectiveTransitionDurationClamping() {
-    let config = MergeConfiguration(
-      transitionStyle: .crossDissolve,
-      transitionDuration: 0.75
-    )
+    let config = MergeConfiguration(transitionStyle: .crossDissolve)
 
-    // Both clips plenty long -> full 0.75s
-    #expect(abs(config.effectiveTransitionDuration(between: 5.0, and: 8.0) - 0.75) < 0.0001)
+    // Both clips plenty long -> fixed 0.5s
+    #expect(abs(config.effectiveTransitionDuration(between: 5.0, and: 8.0) - 0.5) < 0.0001)
 
     // First clip 1.0s -> clamped to 0.45s
     #expect(abs(config.effectiveTransitionDuration(between: 1.0, and: 5.0) - 0.45) < 0.0001)

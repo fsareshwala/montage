@@ -21,7 +21,6 @@ struct AppSettingsTests {
     let settings = AppSettings(defaults: defaults)
 
     #expect(settings.transitionStyle == .none)
-    #expect(settings.transitionDuration == .medium)
     #expect(settings.preserveMetadata == true)
     #expect(settings.deleteSourceClipsAfterMerge == false)
     #expect(settings.autoTrimEnabled == false)
@@ -35,7 +34,6 @@ struct AppSettingsTests {
 
     let hostSettings = AppSettings(defaults: defaults)
     hostSettings.transitionStyle = .crossDissolve
-    hostSettings.transitionDuration = .long
     hostSettings.preserveMetadata = false
     hostSettings.deleteSourceClipsAfterMerge = true
     hostSettings.autoTrimEnabled = true
@@ -45,7 +43,6 @@ struct AppSettingsTests {
     let extensionSettings = AppSettings(defaults: defaults)
 
     #expect(extensionSettings.transitionStyle == .crossDissolve)
-    #expect(extensionSettings.transitionDuration == .long)
     #expect(extensionSettings.preserveMetadata == false)
     #expect(extensionSettings.deleteSourceClipsAfterMerge == true)
     #expect(extensionSettings.autoTrimEnabled == true)
@@ -61,7 +58,6 @@ struct AppSettingsTests {
     #expect(settings.transitionStyle == .none)
 
     defaults.set(TransitionStyle.slide.rawValue, forKey: "transitionStyle")
-    defaults.set(TransitionDuration.short.rawValue, forKey: "transitionDuration")
     defaults.set(false, forKey: "preserveMetadata")
     defaults.set(true, forKey: "deleteSourceClipsAfterMerge")
     defaults.set(true, forKey: "autoTrimEnabled")
@@ -70,7 +66,6 @@ struct AppSettingsTests {
     settings.reload()
 
     #expect(settings.transitionStyle == .slide)
-    #expect(settings.transitionDuration == .short)
     #expect(settings.preserveMetadata == false)
     #expect(settings.deleteSourceClipsAfterMerge == true)
     #expect(settings.autoTrimEnabled == true)
@@ -84,19 +79,16 @@ struct AppSettingsTests {
 
     let settings = AppSettings(defaults: defaults)
     settings.transitionStyle = .dipToBlack
-    settings.transitionDuration = .long
     settings.preserveMetadata = false
     settings.autoTrimInterval = .oneMinute
 
     defaults.set("unknown_style", forKey: "transitionStyle")
-    defaults.set(-5.0, forKey: "transitionDuration")
     defaults.removeObject(forKey: "preserveMetadata")
     defaults.set(999, forKey: "autoTrimInterval")
 
     settings.reload()
 
     #expect(settings.transitionStyle == .none)
-    #expect(settings.transitionDuration == .medium)
     #expect(settings.preserveMetadata == true)
     #expect(settings.autoTrimInterval == .thirtySeconds)
   }
@@ -108,7 +100,6 @@ struct AppSettingsTests {
 
     let settings = AppSettings(defaults: defaults)
     settings.transitionStyle = .dipToBlack
-    settings.transitionDuration = .short
     settings.preserveMetadata = true
     settings.deleteSourceClipsAfterMerge = true
     settings.autoTrimEnabled = true
@@ -120,8 +111,8 @@ struct AppSettingsTests {
     settings.transitionStyle = .none
     settings.autoTrimEnabled = false
 
+    #expect(MergeConfiguration.transitionDuration == 0.5)
     #expect(snapshot.transitionStyle == .dipToBlack)
-    #expect(snapshot.transitionDuration == 0.25)
     #expect(snapshot.preserveMetadata == true)
     #expect(snapshot.deleteSourceClipsAfterMerge == true)
     #expect(snapshot.autoTrimEnabled == true)
@@ -143,18 +134,6 @@ struct AppSettingsTests {
       #expect(!style.displayName.isEmpty)
       #expect(!style.displayName.contains("&"))
       #expect(!style.displayName.localizedCaseInsensitiveContains("outing"))
-    }
-
-    #expect(TransitionDuration.allCases == [.short, .medium, .long])
-    #expect(TransitionDuration.short.rawValue == 0.25)
-    #expect(TransitionDuration.short.displayName == "0.25 seconds")
-    #expect(TransitionDuration.medium.rawValue == 0.5)
-    #expect(TransitionDuration.medium.displayName == "0.5 seconds")
-    #expect(TransitionDuration.long.rawValue == 0.75)
-    #expect(TransitionDuration.long.displayName == "0.75 seconds")
-    for duration in TransitionDuration.allCases {
-      #expect(duration.id == duration.rawValue)
-      #expect(!duration.displayName.isEmpty)
     }
 
     #expect(TrimInterval.allCases == [.fifteenSeconds, .thirtySeconds, .oneMinute])

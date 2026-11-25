@@ -133,7 +133,6 @@ enum HostAppContent {
 
   static let transitionsSectionTitle = "Transitions"
   static let transitionStyleTitle = "Transition Style"
-  static let transitionDurationTitle = "Transition Duration"
 
   static let hygieneSectionTitle = "Photo Library Hygiene"
   static let preserveMetadataTitle = "Preserve Metadata"
@@ -175,7 +174,6 @@ enum HostAppContent {
       howItWorksSectionTitle,
       transitionsSectionTitle,
       transitionStyleTitle,
-      transitionDurationTitle,
       hygieneSectionTitle,
       preserveMetadataTitle,
       preserveMetadataDescription,
@@ -249,14 +247,9 @@ struct ContentView: View {
       .navigationBarTitleDisplayMode(.large)
       .animation(
         AnimationCompatibility.shared.snappy(duration: 0.25),
-        value: settings.transitionStyle
-      )
-      .animation(
-        AnimationCompatibility.shared.snappy(duration: 0.25),
         value: settings.autoTrimEnabled
       )
       .compatibleSensoryFeedback(.selection, trigger: settings.transitionStyle)
-      .compatibleSensoryFeedback(.selection, trigger: settings.transitionDuration)
       .compatibleSensoryFeedback(.selection, trigger: settings.autoTrimInterval)
       .onAppear {
         refreshState()
@@ -368,15 +361,6 @@ struct ContentView: View {
         systemImage: "sparkles.rectangle.stack",
         selection: $settings.transitionStyle
       )
-
-      if settings.transitionStyle != .none {
-        SettingPickerRow(
-          title: HostAppContent.transitionDurationTitle,
-          systemImage: "timer",
-          monospacedDigit: true,
-          selection: $settings.transitionDuration
-        )
-      }
     }
   }
 
