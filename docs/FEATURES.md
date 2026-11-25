@@ -83,7 +83,7 @@ agents must keep this file synchronized with code changes.
 - **Provenance & Rationale:** Mirrors the developer's other open-source iOS apps for transparency,
   easy issue reporting, and cross-app discovery without requiring a separate modal sheet.
 - **Key Files:** `Montage/ContentView.swift`, `Montage/PrivacyPolicyView.swift`,
-  `Montage/OtherAppsView.swift`, `Shared/UICompatibility.swift`.
+  `Shared/UICompatibility.swift`, `ios-shared` (`OtherApps` Swift Package).
 
 ### 8. Automated Release Versioning & App Store Connect Submission
 

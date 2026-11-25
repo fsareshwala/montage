@@ -10,6 +10,16 @@
       "Base",
     ],
   },
+  "packages": [
+    {
+      "kind": "remote",
+      "repository": "https://github.com/fsareshwala/ios-shared.git",
+      "version": {
+        "kind": "up-to-next-major-version",
+        "version": "1.0.0",
+      },
+    },
+  ],
   "files": [
     { "kind": "folder", "path": "Montage", "target-membership": [ "Montage" ] },
     {
@@ -50,6 +60,15 @@
       "product-type": "application",
       "dependencies": [
         "ShareExtension",
+      ],
+      "package-product-members": [
+        {
+          "package": "ios-shared",
+          "product-name": "OtherApps",
+          "build-phase": {
+            "build-phase": "frameworks",
+          },
+        },
       ],
       "build-phases": [
         "compile-sources",

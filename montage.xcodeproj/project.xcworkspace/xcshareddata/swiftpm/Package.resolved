@@ -1,0 +1,15 @@
+{
+  "originHash" : "a663b6d52e8b24e7d3cd1569a25fb58500e8e6c64edfa7fb9cd5aefe49f5aee4",
+  "pins" : [
+    {
+      "identity" : "ios-shared",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/fsareshwala/ios-shared.git",
+      "state" : {
+        "revision" : "51680fccb3acb8f0a7380b1dc4a721f00e949934",
+        "version" : "1.0.0"
+      }
+    }
+  ],
+  "version" : 3
+}

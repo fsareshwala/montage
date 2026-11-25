@@ -1,4 +1,5 @@
 import Foundation
+import OtherApps
 import Photos
 import SwiftUI
 import Testing
@@ -102,19 +103,22 @@ struct HostAppPresentationTests {
     #expect(HostAppContent.issuesURL.absoluteString.hasPrefix(HostAppContent.githubURL.absoluteString))
   }
 
-  @Test("OtherAppsView lists Forecash and Clean Dial with valid icons and App Store links")
-  func otherAppsCatalogIsValid() {
-    let apps = OtherAppsView.apps
+  @Test("OtherAppsView excludes Montage and lists Forecash and Clean Dial with valid icons and URLs")
+  func otherAppsCatalogIsValid() throws {
+    let view = OtherAppsView()
+    let apps = view.apps
     #expect(apps.map(\.appName) == ["Forecash", "Clean Dial"])
+    #expect(!apps.contains(where: { $0.bundleIdentifier == Bundle.main.bundleIdentifier }))
 
     let uniqueIDs = Set(apps.map(\.id))
     #expect(uniqueIDs.count == apps.count)
 
     for app in apps {
       #expect(!app.description.isEmpty)
-      #expect(app.appStoreURL.scheme == "https")
-      #expect(app.appStoreURL.host == "apps.apple.com")
-      #expect(UIImage(named: app.iconName) != nil)
+      let url = try #require(app.appStoreURL)
+      #expect(url.scheme == "https")
+      #expect(url.host == "apps.apple.com")
+      #expect(app.iconUIImage != nil)
     }
   }
 
@@ -140,7 +144,7 @@ struct HostAppPresentationTests {
       allCopy.append(presentation.subtitle)
     }
 
-    for app in OtherAppsView.apps {
+    for app in OtherAppsView().apps {
       allCopy.append(app.appName)
       allCopy.append(app.description)
     }
