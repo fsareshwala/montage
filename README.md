@@ -1,5 +1,8 @@
 # Montage
 
+[![iOS](https://img.shields.io/badge/iOS-15.0+-blue.svg)](https://developer.apple.com/ios/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 **Combine multiple video clips into a single seamless video, directly from the iOS Photos Share
 Sheet.**
 
